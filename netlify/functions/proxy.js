@@ -3,30 +3,41 @@
 // la llamada. El navegador de cualquier visitante nunca ve la clave.
 //
 // Se llama desde el navegador como /api/<lo-que-sea>, y netlify.toml
-// redirige eso hacia esta función pasando el resto de la ruta en
-// el parámetro "path".
+// redirige eso hacia /.netlify/functions/proxy/<lo-que-sea>. Esta función
+// reconstruye <lo-que-sea> a partir de la URL, sin depender de un solo
+// formato (soporta tanto el path como, por compatibilidad, ?path=...).
 
 exports.handler = async (event) => {
   const apiKey = process.env.FOOTBALL_DATA_KEY;
-  const path = event.queryStringParameters && event.queryStringParameters.path;
 
-  if (!path) {
+  let upstreamPath = "";
+  const rawPath = event.path || "";
+  const marker = "/proxy/";
+  const idx = rawPath.indexOf(marker);
+
+  if (idx !== -1) {
+    upstreamPath = rawPath.slice(idx + marker.length);
+  } else if (event.queryStringParameters && event.queryStringParameters.path) {
+    upstreamPath = event.queryStringParameters.path;
+  }
+
+  if (!upstreamPath) {
     return {
       statusCode: 400,
-      body: JSON.stringify({ error: "Falta el parámetro path." })
+      body: JSON.stringify({ error: "No se pudo determinar la ruta de la API.", debugPath: rawPath })
     };
   }
   if (!apiKey) {
     return {
       statusCode: 500,
       body: JSON.stringify({
-        error: "Falta configurar la variable de entorno FOOTBALL_DATA_KEY en Netlify (Site settings → Environment variables)."
+        error: "Falta configurar la variable de entorno FOOTBALL_DATA_KEY en Netlify (Site/Project configuration → Environment variables)."
       })
     };
   }
 
   try {
-    const upstream = await fetch(`https://api.football-data.org/v4/${path}`, {
+    const upstream = await fetch(`https://api.football-data.org/v4/${upstreamPath}`, {
       headers: { "X-Auth-Token": apiKey }
     });
     const body = await upstream.text();
