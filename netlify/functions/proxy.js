@@ -12,13 +12,13 @@ exports.handler = async (event) => {
 
   let upstreamPath = "";
   const rawPath = event.path || "";
-  const marker = "/proxy/";
-  const idx = rawPath.indexOf(marker);
 
-  if (idx !== -1) {
-    upstreamPath = rawPath.slice(idx + marker.length);
-  } else if (event.queryStringParameters && event.queryStringParameters.path) {
+  if (event.queryStringParameters && event.queryStringParameters.path) {
     upstreamPath = event.queryStringParameters.path;
+  } else if (rawPath.includes("/proxy/")) {
+    upstreamPath = rawPath.slice(rawPath.indexOf("/proxy/") + "/proxy/".length);
+  } else if (rawPath.startsWith("/api/")) {
+    upstreamPath = rawPath.slice("/api/".length);
   }
 
   if (!upstreamPath) {
