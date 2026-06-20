@@ -351,10 +351,10 @@ const TEAM_ES_BY_NAME = {
   "panama":"Panamá", "croatia":"Croacia"
 };
 function esName(team){
-  if(!team) return team;
+  if(!team) return 'Por definir';
   if(team.id && TEAM_ES_BY_ID[team.id]) return TEAM_ES_BY_ID[team.id];
   const key = (team.name || '').trim().toLowerCase();
-  return TEAM_ES_BY_NAME[key] || team.name;
+  return TEAM_ES_BY_NAME[key] || team.name || 'Por definir';
 }
 
 let state = { groups: null, live: false, matches: [], allMatches: [], liveMatchInfo: [] };
@@ -422,7 +422,7 @@ async function fetchLiveData(){
     const groups = {};
     for(const block of (standingsData.standings || [])){
       if(!block.group) continue;
-      const letter = block.group.replace('GROUP_','');
+      const letter = (block.group || '').trim().slice(-1);
       groups[letter] = block.table.map(row => ({
         id: row.team.id,
         name: row.team.name,
@@ -523,7 +523,7 @@ function renderBracket(){
   if(state.matches && state.matches.length > 0){
     area.innerHTML = `<div class="bracket-list">${state.matches.map(m => `
       <div class="match-card">
-        <div class="vs"><span>${m.homeTeam ? esName(m.homeTeam) : 'Por definir'}</span><span style="color:var(--muted);font-size:11px;">vs</span><span>${m.awayTeam ? esName(m.awayTeam) : 'Por definir'}</span></div>
+        <div class="vs"><span>${m.homeTeam?.name ? esName(m.homeTeam) : 'Por definir'}</span><span style="color:var(--muted);font-size:11px;">vs</span><span>${m.awayTeam?.name ? esName(m.awayTeam) : 'Por definir'}</span></div>
         <div class="meta">${m.stage.replaceAll('_',' ')} · ${m.utcDate ? new Date(m.utcDate).toLocaleDateString('es-MX',{day:'2-digit',month:'short'}) : 'fecha por confirmar'}</div>
       </div>`).join('')}</div>`;
   } else {
@@ -613,7 +613,7 @@ function computeProjectedGroups(){
   );
 
   live.forEach(m => {
-    const letter = m.group.replace('GROUP_','');
+    const letter = (m.group || '').trim().slice(-1);
     const grp = projected[letter];
     if(!grp) return;
     const home = grp.find(t => t.id === m.homeTeam?.id);
