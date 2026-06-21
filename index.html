@@ -1256,56 +1256,76 @@ function renderFullBracket(){
 }
 
 function computeProjectedGroups(){
-  const projected = {};
-  for(const letter of Object.keys(state.groups)){
-    projected[letter] = state.groups[letter].map(t => ({...t, live:false}));
-  }
   state.liveMatchInfo = [];
-  if(!state.live) return projected;
 
-  const live = (state.allMatches || []).filter(m =>
-    (m.status === 'IN_PLAY' || m.status === 'PAUSED') && m.group
-  );
+  if(!state.live){
+    // Modo de muestra: no hay partidos individuales, solo la tabla ya armada.
+    const projected = {};
+    for(const letter of Object.keys(state.groups)){
+      projected[letter] = state.groups[letter].map(t => ({...t, live:false}));
+    }
+    return projected;
+  }
 
-  const seenPairs = new Set(); // evita aplicar el mismo partido dos veces si la API lo repite
-  live.forEach(m => {
-    const letter = (m.group || '').trim().slice(-1);
-    const grp = projected[letter];
-    if(!grp) return;
-    const home = grp.find(t => t.id === m.homeTeam?.id);
-    const away = grp.find(t => t.id === m.awayTeam?.id);
+  // En vivo: la tabla se calcula ENTERA desde la lista de partidos
+  // (state.allMatches), no se le suman parches al snapshot de /standings.
+  // Razón: /standings y /matches son dos llamadas independientes a la API y
+  // pueden quedar desincronizadas por unos segundos justo cuando un partido
+  // termina (una ya trae el resultado, la otra todavía dice "en vivo"). Si
+  // partíamos del snapshot de /standings y le sumábamos el "delta en vivo" de
+  // /matches encima, ese resultado se podía contar dos veces. Calculando todo
+  // desde los partidos —cada uno aporta sus puntos exactamente una vez, sin
+  // importar qué tan rápido o lento se actualice su campo de estado— esa
+  // doble cuenta deja de ser posible, no solo improbable.
+  const projected = {};
+  const byId = {};
+  for(const letter of Object.keys(state.groups)){
+    projected[letter] = state.groups[letter].map(t => {
+      const fresh = {...t, played:0, won:0, draw:0, lost:0, points:0, gf:0, ga:0, gd:0, live:false};
+      byId[fresh.id] = fresh;
+      return fresh;
+    });
+  }
+
+  const groupMatches = (state.allMatches || []).filter(m => m.stage === 'GROUP_STAGE');
+  const seenMatchIds = new Set();
+
+  groupMatches.forEach(m => {
+    if(m.id != null){
+      if(seenMatchIds.has(m.id)) return; // por si la API repitiera el mismo partido en la lista
+      seenMatchIds.add(m.id);
+    }
+    const home = byId[m.homeTeam?.id];
+    const away = byId[m.awayTeam?.id];
     if(!home || !away) return;
 
-    const pairKey = [home.id, away.id].sort().join('-');
-    if(seenPairs.has(pairKey)) return;
-    seenPairs.add(pairKey);
+    const hg = m.score?.fullTime?.home;
+    const ag = m.score?.fullTime?.away;
+    const isFinished = m.status === 'FINISHED';
+    const isLive = m.status === 'IN_PLAY' || m.status === 'PAUSED';
+    if(!isFinished && !isLive) return; // SCHEDULED, POSTPONED, etc. no aportan nada todavía
+    if(hg == null || ag == null) return;
 
-    // Seguro: solo aplicamos el marcador en vivo si ambos equipos van exactamente
-    // parejos en partidos jugados (lo normal antes de que arranque este partido)
-    // y ninguno ya completó sus 3 de grupo. Esto evita inflar la tabla si la
-    // tabla oficial ya alcanzó a este partido por su cuenta mientras la API de
-    // partidos todavía lo marcaba "en vivo" por unos segundos. Si aun así llega
-    // a pasar, se autocorrige solo en el siguiente refresco (60s), porque esta
-    // función siempre recalcula desde cero — nunca se acumula el error.
-    if(home.played !== away.played || home.played >= 3) return;
-
-    const hg = m.score?.fullTime?.home ?? 0;
-    const ag = m.score?.fullTime?.away ?? 0;
-
-    home.played += 1; away.played += 1;
-    home.gf += hg; home.ga += ag; home.gd = home.gf - home.ga;
-    away.gf += ag; away.ga += hg; away.gd = away.gf - away.ga;
+    home.gf += hg; home.ga += ag;
+    away.gf += ag; away.ga += hg;
     if(hg > ag){ home.points += 3; home.won += 1; away.lost += 1; }
     else if(hg < ag){ away.points += 3; away.won += 1; home.lost += 1; }
     else { home.points += 1; away.points += 1; home.draw += 1; away.draw += 1; }
-    home.live = true; away.live = true;
 
-    state.liveMatchInfo.push({
-      group: letter,
-      home: esName(home), away: esName(away), hg, ag,
-      minute: m.minute ?? null
-    });
+    if(isFinished){
+      home.played += 1; away.played += 1;
+    } else {
+      home.live = true; away.live = true;
+      state.liveMatchInfo.push({
+        group: (m.group || '').trim().slice(-1),
+        home: esName(home), away: esName(away), hg, ag, minute: m.minute ?? null
+      });
+    }
   });
+
+  for(const letter of Object.keys(projected)){
+    projected[letter].forEach(t => { t.gd = t.gf - t.ga; });
+  }
 
   return projected;
 }
