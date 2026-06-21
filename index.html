@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mundial 2026 · Siguiente Ronda</title>
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#0B0F2B">
+<meta name="theme-color" content="#0A0908">
 <link rel="icon" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
@@ -13,40 +13,51 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Mundial 2026">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg-deep:#0B0F2B;
-    --bg-deep-2:#11173D;
-    --card:#161D4A;
-    --card-2:#1B2257;
-    --line: rgba(245,246,255,0.12);
-    --text:#F5F6FF;
-    --muted:#9BA3D4;
-    --teal:#22D3C9;
-    --magenta:#FF4D8D;
-    --amber:#FFB020;
-    --violet:#9B7BFF;
-    --green-live:#3DDC97;
-    --coral:#FF5C7A;
-    /* alias para no romper el resto del código */
+    /* Base: negro/carbón institucional, como la paleta oficial del emblema
+       2026 (negro-blanco-oro), no un "dark mode" genérico de neón. */
+    --bg-deep:#0A0908;
+    --bg-deep-2:#15120D;
+    --card:#1A160F;
+    --card-2:#211B12;
+    --line: rgba(242,239,232,0.10);
+    --text:#F2EFE8;
+    --muted:#A8A095;
+    /* Oro: el acento institucional del emblema/trofeo oficial 2026. */
+    --gold:#C9A24B;
+    --gold-bright:#E8C468;
+    /* Las tres olas del balón oficial "Trionda" (Canadá/EUA/México),
+       usadas como acentos FUNCIONALES, no decorativos: rojo = en vivo/
+       urgente, azul = informativo, verde = estadística positiva. */
+    --trionda-red:#E1432C;
+    --trionda-blue:#3E7CC2;
+    --trionda-green:#3C9468;
+    /* alias para no romper el resto del código existente */
+    --teal:var(--gold);
+    --magenta:var(--trionda-red);
+    --amber:var(--gold);
+    --violet:var(--trionda-green);
+    --blue:var(--trionda-blue);
+    --green-live:var(--trionda-green);
+    --coral:var(--trionda-red);
     --pitch-darker:var(--bg-deep);
     --pitch-dark:var(--bg-deep-2);
     --chalk:var(--text);
-    --gold:var(--amber);
   }
   *{box-sizing:border-box;}
   body{
     margin:0;
     background:
-      radial-gradient(900px 500px at 88% -8%, rgba(255,77,141,0.16), transparent),
-      radial-gradient(900px 500px at 8% 105%, rgba(34,211,201,0.14), transparent),
+      radial-gradient(900px 500px at 88% -8%, rgba(225,67,44,0.10), transparent),
+      radial-gradient(900px 500px at 8% 105%, rgba(201,162,75,0.12), transparent),
       var(--bg-deep);
     color:var(--text);
     font-family:'Inter',sans-serif;
     line-height:1.45;
   }
-  h1,h2,h3,.display{font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.03em;}
+  h1,h2,h3,.display{font-family:'Space Grotesk',sans-serif; text-transform:uppercase; letter-spacing:0.03em;}
   .mono{font-family:'Roboto Mono',monospace;}
 
   header.scoreboard{
@@ -87,7 +98,7 @@
   .panel{
     background:var(--card);
     border:1px solid var(--line);
-    border-radius:10px;
+    border-radius:24px 6px 6px 6px;
     padding:18px 20px;
     margin-bottom:22px;
     border-top:3px solid var(--accent, var(--teal));
@@ -97,18 +108,19 @@
   .panel.accent-magenta{--accent:var(--magenta);}
   .panel.accent-amber{--accent:var(--amber);}
   .panel.accent-violet{--accent:var(--violet);}
+  .panel.accent-blue{--accent:var(--blue);}
 
   .config-row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
   .config-row input[type=password], .config-row input[type=text]{
     flex:1; min-width:220px;
     background:var(--bg-deep); border:1px solid var(--line); color:var(--text);
-    padding:10px 12px; border-radius:6px; font-family:'Roboto Mono',monospace; font-size:13px;
+    padding:10px 12px; border-radius:14px 4px 14px 4px; font-family:'Roboto Mono',monospace; font-size:13px;
   }
   button{
-    background:var(--teal); color:var(--bg-deep); border:none;
-    font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:0.03em;
+    background:var(--gold); color:var(--bg-deep); border:none;
+    font-family:'Space Grotesk',sans-serif; text-transform:uppercase; letter-spacing:0.03em;
     font-weight:600; font-size:13px;
-    padding:11px 18px; border-radius:6px; cursor:pointer;
+    padding:11px 18px; border-radius:14px 4px 14px 4px; cursor:pointer;
   }
   button:hover{filter:brightness(1.1);}
   button.ghost{
@@ -117,14 +129,14 @@
   .config-note{font-size:12.5px; color:var(--muted); margin-top:10px;}
   .config-note a{color:var(--amber);}
   .msg{font-size:13px; margin-top:10px; padding:10px 12px; border-radius:6px; display:none;}
-  .msg.error{display:block; background:rgba(255,92,122,0.16); border:1px solid var(--coral); color:#ffd6de;}
-  .msg.ok{display:block; background:rgba(61,220,151,0.15); border:1px solid var(--green-live); color:#cdf7e3;}
+  .msg.error{display:block; background:rgba(225,67,44,0.16); border:1px solid var(--coral); color:#ffe1da;}
+  .msg.ok{display:block; background:rgba(60,148,104,0.16); border:1px solid var(--green-live); color:#d8f3e6;}
 
   .groups-grid{
     display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; margin-bottom:24px;
   }
   .group-card{
-    background:var(--card-2); border:1px solid var(--line); border-radius:10px; padding:14px 16px;
+    background:var(--card-2); border:1px solid var(--line); border-radius:18px 6px 6px 6px; padding:14px 16px;
   }
   .group-card .eyebrow{
     font-size:12px; color:var(--teal); font-weight:600; margin-bottom:8px;
@@ -138,8 +150,8 @@
   td{padding:6px 4px; border-bottom:1px solid rgba(245,246,255,0.06); font-family:'Roboto Mono',monospace;}
   td.team{font-family:'Inter',sans-serif; font-weight:500;}
   tr.qualified td{position:relative;}
-  tr.qualified td.team{border-left:3px solid var(--teal); padding-left:8px;}
-  tr.third td.team{border-left:3px solid var(--amber); padding-left:8px;}
+  tr.qualified td.team{border-left:3px solid var(--gold); padding-left:8px;}
+  tr.third td.team{border-left:3px solid var(--trionda-blue); padding-left:8px;}
 
   .thirds-table tr.cut-line td{padding-top:0; padding-bottom:0; height:0; border:none;}
   .cut-marker{
@@ -147,7 +159,7 @@
   }
   .cut-marker .line{flex:1; height:0; border-top:2px dashed var(--magenta);}
   .cut-marker .tag{
-    font-family:'Oswald',sans-serif; font-size:10.5px; letter-spacing:0.05em; color:var(--bg-deep);
+    font-family:'Space Grotesk',sans-serif; font-size:10.5px; letter-spacing:0.05em; color:var(--bg-deep);
     background:var(--magenta); padding:3px 8px; border-radius:3px; white-space:nowrap;
   }
   .thirds-list{list-style:none; margin:0; padding:0;}
@@ -162,7 +174,7 @@
 
   .bracket-list{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px;}
   .match-card{
-    background:var(--card-2); border:1px solid var(--line); border-left:3px solid var(--amber); border-radius:8px; padding:12px 14px;
+    background:var(--card-2); border:1px solid var(--line); border-left:3px solid var(--amber); border-radius:16px 5px 5px 5px; padding:12px 14px;
   }
   .match-card .vs{display:flex; flex-direction:column; gap:2px; font-weight:600; font-size:14.5px;}
   .match-card .vs .side{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
@@ -175,19 +187,19 @@
   }
   .live-ticker-item{
     display:flex; align-items:center; gap:10px;
-    background:linear-gradient(90deg, rgba(255,77,141,0.14), rgba(34,211,201,0.10));
-    border:1px solid var(--magenta); border-radius:8px; padding:8px 14px;
+    background:linear-gradient(90deg, rgba(225,67,44,0.16), rgba(201,162,75,0.10));
+    border:1px solid var(--magenta); border-radius:16px 5px 5px 5px; padding:8px 14px;
     font-family:'Roboto Mono',monospace; font-size:12.5px;
   }
   .live-ticker-item .pulse{
     width:8px; height:8px; border-radius:50%; background:var(--coral);
-    box-shadow:0 0 0 0 rgba(255,92,122,0.6); animation:pulse 1.5s infinite;
+    box-shadow:0 0 0 0 rgba(225,67,44,0.6); animation:pulse 1.5s infinite;
     flex-shrink:0;
   }
   @keyframes pulse{
-    0%{box-shadow:0 0 0 0 rgba(255,92,122,0.6);}
-    70%{box-shadow:0 0 0 8px rgba(255,92,122,0);}
-    100%{box-shadow:0 0 0 0 rgba(255,92,122,0);}
+    0%{box-shadow:0 0 0 0 rgba(225,67,44,0.6);}
+    70%{box-shadow:0 0 0 8px rgba(225,67,44,0);}
+    100%{box-shadow:0 0 0 0 rgba(225,67,44,0);}
   }
   tr.live-row td.team{color:var(--coral); font-weight:700;}
   tr.live-row td.team::after{content:' ●'; color:var(--coral); font-size:9px; vertical-align:super;}
@@ -260,6 +272,13 @@
     <h2>Goleadores</h2>
     <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Top 5 del torneo, directo de football-data.org — se actualiza solo cada 60 segundos, junto con todo lo demás.</p>
     <ul class="thirds-list" id="scorersList"></ul>
+  </section>
+
+  <section class="panel accent-blue">
+    <h2>Predicciones de la IA</h2>
+    <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Una vez al día, antes de que arranquen los partidos, con estadísticas reales + libertad para lo inesperado. Se evalúan solas conforme llegan los resultados.</p>
+    <div id="predictionsAccuracy" style="display:none;"></div>
+    <ul class="thirds-list" id="predictionsList"></ul>
   </section>
 
   <section class="panel accent-amber" id="projectionPanel">
@@ -909,7 +928,7 @@ function esName(team){
   return TEAM_ES_BY_NAME[key] || team.name || 'Por definir';
 }
 
-let state = { groups: null, live: false, matches: [], allMatches: [], liveMatchInfo: [], scorers: [] };
+let state = { groups: null, live: false, matches: [], allMatches: [], liveMatchInfo: [], scorers: [], predictions: [] };
 let workingGroups = null;
 
 function sortedGroup(letter){
@@ -1107,6 +1126,89 @@ function renderScorers(){
       <span class="pts">${s.goals ?? 0} ${s.goals === 1 ? 'gol' : 'goles'}</span>`;
     list.appendChild(li);
   });
+}
+
+async function fetchPredictions(){
+  try{
+    const res = await fetch('/.netlify/functions/get-predictions');
+    if(!res.ok) return;
+    const data = await res.json();
+    state.predictions = data.days || [];
+    renderPredictions();
+  }catch(err){
+    // Silencioso a propósito: si esta función todavía no está configurada
+    // (p. ej. falta ANTHROPIC_API_KEY), el resto de la app debe seguir
+    // funcionando normal sin esta sección.
+  }
+}
+
+function findRealMatchById(matchId){
+  return (state.allMatches || []).find(m => m.id === matchId);
+}
+
+function renderPredictions(){
+  const list = document.getElementById('predictionsList');
+  const accuracyEl = document.getElementById('predictionsAccuracy');
+  list.innerHTML = '';
+
+  const allPreds = [];
+  for(const day of (state.predictions || [])){
+    for(const p of (day.predictions || [])){
+      allPreds.push({ ...p, date: day.date });
+    }
+  }
+
+  if(allPreds.length === 0){
+    accuracyEl.style.display = 'none';
+    const li = document.createElement('li');
+    li.style.cssText = 'font-size:11.5px;color:var(--muted);border:none;padding-top:6px;';
+    li.textContent = 'Todavía no hay predicciones generadas — se publican solas, una vez al día, antes de que arranquen los partidos.';
+    list.appendChild(li);
+    return;
+  }
+
+  let exact = 0, direction = 0, wrong = 0, pending = 0;
+
+  allPreds.sort((a,b) => b.date < a.date ? -1 : 1).forEach(p => {
+    const real = findRealMatchById(p.matchId);
+    const li = document.createElement('li');
+    const homeEs = p.homeTeamId ? esName({id:p.homeTeamId, name:p.homeTeamName}) : (p.homeTeamName || '?');
+    const awayEs = p.awayTeamId ? esName({id:p.awayTeamId, name:p.awayTeamName}) : (p.awayTeamName || '?');
+
+    let badge = '';
+    let resultNote = '';
+    if(real && real.status === 'FINISHED' && real.score?.fullTime?.home != null){
+      const rh = real.score.fullTime.home, ra = real.score.fullTime.away;
+      const predDir = Math.sign(p.homeGoals - p.awayGoals);
+      const realDir = Math.sign(rh - ra);
+      if(p.homeGoals === rh && p.awayGoals === ra){ badge = '🎯 exacto'; exact++; }
+      else if(predDir === realDir){ badge = '👍 le atinó al resultado'; direction++; }
+      else { badge = '❌ falló'; wrong++; }
+      resultNote = ` · real ${rh}-${ra}`;
+    } else if(real && (real.status === 'IN_PLAY' || real.status === 'PAUSED')){
+      badge = '🔴 en vivo';
+      resultNote = ` · va ${real.score?.fullTime?.home ?? 0}-${real.score?.fullTime?.away ?? 0}`;
+    } else {
+      badge = '⏳ pendiente';
+      pending++;
+    }
+
+    li.innerHTML = `
+      <span class="rk">${p.homeGoals}-${p.awayGoals}</span>
+      <span>${homeEs} vs ${awayEs}<br><span class="grp" style="display:block;margin-top:3px;font-style:italic;">${p.reasoning || ''}</span></span>
+      <span class="grp">${badge}${resultNote}</span>
+      <span class="pts"></span>`;
+    list.appendChild(li);
+  });
+
+  const evaluated = exact + direction + wrong;
+  if(evaluated > 0){
+    accuracyEl.style.display = '';
+    accuracyEl.style.cssText = 'font-size:12px;color:var(--muted);margin-bottom:8px;';
+    accuracyEl.textContent = `Marcador exacto: ${exact} · Le atinó al resultado: ${direction} · Falló: ${wrong} (de ${evaluated} partidos ya evaluados)`;
+  } else {
+    accuracyEl.style.display = 'none';
+  }
 }
 
 const STAGE_LABELS = {
@@ -1343,9 +1445,16 @@ function computeProjectedGroups(){
   const groupMatches = (state.allMatches || []).filter(m => m.stage === 'GROUP_STAGE');
   const seenMatchIds = new Set();
 
+  // Primera pasada: nos quedamos con UNA sola entrada por cada par de
+  // equipos. En fase de grupos dos equipos solo se enfrentan una vez, así
+  // que si la API llega a mandar el mismo partido dos veces con ids
+  // distintos (un glitch real de football-data.org que ya vimos pasar),
+  // preferimos la versión FINISHED sobre una EN_VIVO/pausa que se haya
+  // quedado pegada, en vez de contar el mismo partido como si fueran dos.
+  const byPair = new Map();
   groupMatches.forEach(m => {
     if(m.id != null){
-      if(seenMatchIds.has(m.id)) return; // por si la API repitiera el mismo partido en la lista
+      if(seenMatchIds.has(m.id)) return;
       seenMatchIds.add(m.id);
     }
     const home = byId[m.homeTeam?.id];
@@ -1359,6 +1468,16 @@ function computeProjectedGroups(){
     if(!rawIsFinished && !rawIsLive) return; // SCHEDULED, POSTPONED, etc.: no ha arrancado, no aporta nada
     if(hg == null || ag == null) return;
 
+    const pairKey = [home.id, away.id].sort().join('-');
+    const existing = byPair.get(pairKey);
+    if(!existing || (!existing.rawIsFinished && rawIsFinished)){
+      byPair.set(pairKey, { m, home, away, hg, ag, rawIsFinished, rawIsLive });
+    }
+  });
+
+  // Segunda pasada: aplicamos puntos/goles/PJ usando solo la entrada elegida
+  // de cada par.
+  byPair.forEach(({ m, home, away, hg, ag, rawIsLive }) => {
     // El PJ sube en cuanto el partido ARRANCA (como la mayoría de sitios de
     // resultados, incluyendo Google), no hasta que termina — ambos casos ya
     // aportan goles/puntos por igual. "isLive" de aquí en adelante solo
@@ -1485,6 +1604,7 @@ function render(){
   renderGroups();
   renderThirds();
   renderScorers();
+  renderPredictions();
   renderFullBracket();
   renderBracket();
   setStatus(state.live, state.live ? `en vivo · ${new Date().toLocaleTimeString('es-MX')}` : 'datos de muestra · 19 jun 2026');
@@ -1496,10 +1616,11 @@ document.getElementById('refreshBtn').addEventListener('click', fetchLiveData);
 // vacía, y al mismo tiempo pedimos los datos en vivo en segundo plano.
 loadDemo();
 fetchLiveData();
+fetchPredictions();
 
 // Se actualiza solo cada 60s, para que un gol en un partido en curso
 // mueva las posiciones sin que tengas que darle clic a "Actualizar ahora".
-setInterval(fetchLiveData, 60000);
+setInterval(() => { fetchLiveData(); fetchPredictions(); }, 60000);
 
 // Registro del service worker: habilita "Agregar a pantalla de inicio" en
 // Android/Chrome. Si falla (navegador viejo, modo privado, etc.) la app
