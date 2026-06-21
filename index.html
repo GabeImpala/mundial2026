@@ -218,10 +218,21 @@
       <button id="refreshBtn">Actualizar ahora</button>
     </div>
     <div class="config-note">
-      Los datos vienen de <a href="https://www.football-data.org" target="_blank" rel="noopener">football-data.org</a>, y se actualizan solos cada 60 segundos — si hay un partido en curso, sus goles ya se reflejan en las posiciones de abajo.
+      Los datos vienen de <a href="https://www.football-data.org" target="_blank" rel="noopener">football-data.org</a>, y se actualizan solos cada 60 segundos — si hay un partido en curso, su marcador ya mueve la posición de los equipos (y el bracket) en automático.
     </div>
     <div class="msg error" id="errorMsg"></div>
     <div class="msg ok" id="okMsg"></div>
+  </section>
+
+  <section class="panel accent-violet">
+    <h2>Calendario del día</h2>
+    <div class="config-row" style="margin-bottom:14px;">
+      <button class="ghost" id="calPrevBtn">← Anterior</button>
+      <button id="calTodayBtn">Hoy</button>
+      <button class="ghost" id="calNextBtn">Siguiente →</button>
+      <span id="calDateLabel" style="font-family:'Roboto Mono',monospace; font-size:13px; color:var(--muted); margin-left:auto;"></span>
+    </div>
+    <div id="calendarArea"></div>
   </section>
 
   <section class="panel accent-teal">
@@ -1102,6 +1113,10 @@ function posLabel(pos, group){
   return `3° lugar Grupo ${group}`;
 }
 
+function groupStageSettled(){
+  return Object.values(workingGroups).every(teams => teams.every(t => t.played >= 3));
+}
+
 function resolveR32Slot(matchId){
   const m = FULL_BRACKET[matchId];
   const topTwo = {};
@@ -1179,6 +1194,9 @@ function resolveMatch(matchId, cache){
   let apiMatch = null, winner = null, loser = null;
   if(homeTeam && awayTeam){
     apiMatch = findApiMatch(homeTeam.id, awayTeam.id);
+    if(m.round === 'R32' && !apiMatch && groupStageSettled() && state.live){
+      note = note || '⚠ No se encontró un partido oficial confirmado para este cruce. Puede ser un caso de desempate fino (fair play o ranking FIFA) que esta app no calcula — revisa el bracket oficial en FIFA.com.';
+    }
     winner = matchWinner(apiMatch);
     if(winner) loser = (winner.id === homeTeam.id) ? awayTeam : homeTeam;
   }
@@ -1249,6 +1267,7 @@ function computeProjectedGroups(){
     (m.status === 'IN_PLAY' || m.status === 'PAUSED') && m.group
   );
 
+  const seenPairs = new Set(); // evita aplicar el mismo partido dos veces si la API lo repite
   live.forEach(m => {
     const letter = (m.group || '').trim().slice(-1);
     const grp = projected[letter];
@@ -1256,6 +1275,19 @@ function computeProjectedGroups(){
     const home = grp.find(t => t.id === m.homeTeam?.id);
     const away = grp.find(t => t.id === m.awayTeam?.id);
     if(!home || !away) return;
+
+    const pairKey = [home.id, away.id].sort().join('-');
+    if(seenPairs.has(pairKey)) return;
+    seenPairs.add(pairKey);
+
+    // Seguro: solo aplicamos el marcador en vivo si ambos equipos van exactamente
+    // parejos en partidos jugados (lo normal antes de que arranque este partido)
+    // y ninguno ya completó sus 3 de grupo. Esto evita inflar la tabla si la
+    // tabla oficial ya alcanzó a este partido por su cuenta mientras la API de
+    // partidos todavía lo marcaba "en vivo" por unos segundos. Si aun así llega
+    // a pasar, se autocorrige solo en el siguiente refresco (60s), porque esta
+    // función siempre recalcula desde cero — nunca se acumula el error.
+    if(home.played !== away.played || home.played >= 3) return;
 
     const hg = m.score?.fullTime?.home ?? 0;
     const ag = m.score?.fullTime?.away ?? 0;
@@ -1289,9 +1321,83 @@ function renderLiveTicker(){
     </div>`).join('');
 }
 
+function ymdLocal(date){
+  // YYYY-MM-DD en la zona horaria del navegador del usuario, no UTC.
+  const y = date.getFullYear(), m = String(date.getMonth()+1).padStart(2,'0'), d = String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+let calendarDate = ymdLocal(new Date());
+
+const MATCH_STATUS_ES = {
+  SCHEDULED:'Programado', TIMED:'Programado', IN_PLAY:'En vivo', PAUSED:'Medio tiempo',
+  FINISHED:'Finalizado', POSTPONED:'Pospuesto', SUSPENDED:'Suspendido', CANCELLED:'Cancelado'
+};
+
+function renderCalendar(){
+  const area = document.getElementById('calendarArea');
+  const label = document.getElementById('calDateLabel');
+
+  const todayStr = ymdLocal(new Date());
+  const tomorrowStr = ymdLocal(new Date(Date.now() + 86400000));
+  const [y,m,d] = calendarDate.split('-').map(Number);
+  const niceDate = new Date(y, m-1, d).toLocaleDateString('es-MX', {weekday:'long', day:'numeric', month:'long'});
+  label.textContent = calendarDate === todayStr ? `Hoy · ${niceDate}` : calendarDate === tomorrowStr ? `Mañana · ${niceDate}` : niceDate;
+
+  if(!state.allMatches || state.allMatches.length === 0){
+    area.innerHTML = `<div class="empty-state">Conecta los datos en vivo (botón "Actualizar ahora" arriba) para ver el calendario de partidos.</div>`;
+    return;
+  }
+
+  const dayMatches = state.allMatches
+    .filter(mt => mt.utcDate && ymdLocal(new Date(mt.utcDate)) === calendarDate)
+    .sort((a,b) => new Date(a.utcDate) - new Date(b.utcDate));
+
+  if(dayMatches.length === 0){
+    area.innerHTML = `<div class="empty-state">No hay partidos programados este día.</div>`;
+    return;
+  }
+
+  area.innerHTML = `<div class="bracket-list">${dayMatches.map(mt => {
+    const isLive = mt.status === 'IN_PLAY' || mt.status === 'PAUSED';
+    const isFinished = mt.status === 'FINISHED';
+    const time = new Date(mt.utcDate).toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+    const home = mt.homeTeam?.name ? esName(mt.homeTeam) : 'Por definir';
+    const away = mt.awayTeam?.name ? esName(mt.awayTeam) : 'Por definir';
+    const groupLabel = mt.group ? `Grupo ${(mt.group||'').trim().slice(-1)}` : (STAGE_LABELS[mt.stage] || (mt.stage||'').replaceAll('_',' '));
+    let scoreOrTime = `<span class="mono">${time}</span>`;
+    if(isFinished){
+      scoreOrTime = `<span class="mono" style="color:var(--green-live);">${mt.score?.fullTime?.home ?? '-'}-${mt.score?.fullTime?.away ?? '-'} FINAL</span>`;
+    } else if(isLive){
+      scoreOrTime = `<span class="mono" style="color:var(--coral);">● ${mt.score?.fullTime?.home ?? 0}-${mt.score?.fullTime?.away ?? 0} EN VIVO</span>`;
+    }
+    return `
+      <div class="match-card">
+        <div class="vs"><span>${home}</span><span style="color:var(--muted);font-size:11px;">vs</span><span>${away}</span></div>
+        <div class="meta">${groupLabel} · ${mt.venue || ''}</div>
+        <div class="meta" style="margin-top:6px;">${scoreOrTime}</div>
+      </div>`;
+  }).join('')}</div>`;
+}
+
+document.getElementById('calPrevBtn').addEventListener('click', () => {
+  const [y,m,d] = calendarDate.split('-').map(Number);
+  calendarDate = ymdLocal(new Date(y, m-1, d - 1));
+  renderCalendar();
+});
+document.getElementById('calNextBtn').addEventListener('click', () => {
+  const [y,m,d] = calendarDate.split('-').map(Number);
+  calendarDate = ymdLocal(new Date(y, m-1, d + 1));
+  renderCalendar();
+});
+document.getElementById('calTodayBtn').addEventListener('click', () => {
+  calendarDate = ymdLocal(new Date());
+  renderCalendar();
+});
+
 function render(){
   workingGroups = computeProjectedGroups();
   renderLiveTicker();
+  renderCalendar();
   renderGroups();
   renderThirds();
   renderFullBracket();
