@@ -1,0 +1,17 @@
+{
+  "name": "Mundial 2026 · Siguiente Ronda",
+  "short_name": "Mundial 2026",
+  "description": "Posiciones en vivo, goleadores y el bracket completo del Mundial 2026, partido a partido.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0B0F2B",
+  "theme_color": "#0B0F2B",
+  "lang": "es-MX",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
