@@ -117,6 +117,7 @@ exports.handler = async (event) => {
   // llamada a la API de Anthropic ni la re-disparamos por accidente.
   const existing = await store.get(dateKey, { type: "json" }).catch(() => null);
   if (existing) {
+    console.log(`Ya existían predicciones para ${dateKey} (${existing.predictions?.length ?? 0}), no se vuelve a llamar a la IA.`);
     return { statusCode: 200, body: JSON.stringify({ skipped: true, reason: "ya existían predicciones para " + dateKey }) };
   }
 
@@ -130,9 +131,10 @@ exports.handler = async (event) => {
     const allMatches = matchesData.matches || [];
 
     const todays = allMatches.filter(m => m.status === "SCHEDULED" && (m.utcDate || "").slice(0, 10) === dateKey);
+    console.log(`Fecha UTC: ${dateKey}. Partidos totales en el feed: ${allMatches.length}. Programados (SCHEDULED) para hoy: ${todays.length}.`);
 
     if (todays.length === 0) {
-      await store.setJSON(dateKey, { date: dateKey, generatedAt: new Date().toISOString(), predictions: [] });
+      console.log("No hay partidos SCHEDULED para hoy (UTC) — probablemente ya arrancaron todos, o no hay partidos hoy. No se llamó a la IA, y no se guarda nada (así un reintento más tarde hoy sí vuelve a checar).");
       return { statusCode: 200, body: JSON.stringify({ ok: true, count: 0, note: "no hay partidos programados hoy" }) };
     }
 
@@ -206,8 +208,10 @@ Responde ÚNICAMENTE con un array JSON válido, sin texto antes ni después, con
       predictions: enriched
     });
 
+    console.log(`Listo: ${enriched.length} predicciones generadas y guardadas para ${dateKey}.`);
     return { statusCode: 200, body: JSON.stringify({ ok: true, count: enriched.length }) };
   } catch (err) {
+    console.log("ERROR en predict.js: " + String(err));
     return { statusCode: 500, body: JSON.stringify({ error: String(err) }) };
   }
 };
