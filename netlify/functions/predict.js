@@ -130,12 +130,26 @@ exports.handler = async (event) => {
     const matchesData = await matchesRes.json();
     const allMatches = matchesData.matches || [];
 
-    const todays = allMatches.filter(m => m.status === "SCHEDULED" && (m.utcDate || "").slice(0, 10) === dateKey);
-    console.log(`Fecha UTC: ${dateKey}. Partidos totales en el feed: ${allMatches.length}. Programados (SCHEDULED) para hoy: ${todays.length}.`);
+    // En vez de comparar "misma fecha de calendario UTC que hoy" (lo cual
+    // se rompe con partidos que arrancan tarde en EUA/México y cruzan a la
+    // madrugada UTC del día siguiente), buscamos cualquier partido que
+    // arranque dentro de las próximas 24h — sin importar en qué día
+    // calendario UTC caiga. También aceptamos status "TIMED" además de
+    // "SCHEDULED", ya que football-data.org usa "TIMED" una vez que la
+    // hora de inicio está confirmada (que es el caso normal del Mundial).
+    const NOW = Date.now();
+    const WINDOW_MS = 24 * 60 * 60 * 1000;
+    const todays = allMatches.filter(m => {
+      if (m.status !== "SCHEDULED" && m.status !== "TIMED") return false;
+      if (!m.utcDate) return false;
+      const kickoff = new Date(m.utcDate).getTime();
+      return kickoff >= NOW && kickoff <= NOW + WINDOW_MS;
+    });
+    console.log(`Partidos totales en el feed: ${allMatches.length}. Pendientes en las próximas 24h: ${todays.length}.`);
 
     if (todays.length === 0) {
-      console.log("No hay partidos SCHEDULED para hoy (UTC) — probablemente ya arrancaron todos, o no hay partidos hoy. No se llamó a la IA, y no se guarda nada (así un reintento más tarde hoy sí vuelve a checar).");
-      return { statusCode: 200, body: JSON.stringify({ ok: true, count: 0, note: "no hay partidos programados hoy" }) };
+      console.log("No hay partidos SCHEDULED/TIMED en las próximas 24h. No se llamó a la IA, y no se guarda nada (así un reintento más tarde hoy sí vuelve a checar).");
+      return { statusCode: 200, body: JSON.stringify({ ok: true, count: 0, note: "no hay partidos en las próximas 24h" }) };
     }
 
     // 2) Construir el contexto de cada partido: piso estructural (Klement) +
