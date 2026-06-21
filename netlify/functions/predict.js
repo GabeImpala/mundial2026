@@ -97,8 +97,18 @@ function formLine(teamId, matches) {
   return `${played.length} jugados (${w}G-${d}E-${l}P), goles ${gf}-${ga} en el torneo`;
 }
 
-function todayUTC() {
-  return new Date().toISOString().slice(0, 10);
+// Corte de "día de fútbol" fijo en 07:00 UTC (~2am hora del Este / 1am hora
+// del Centro) — un horario en el que nunca hay partidos del Mundial en
+// curso. Esto evita dos problemas: partidos que cruzan la medianoche UTC
+// (se perderían con un corte a las 00:00 UTC), y mezclas de "lo que queda
+// de hoy + el inicio de mañana" si la función se dispara a medio día en
+// vez de su horario automático.
+function footballDayWindow(now) {
+  const BOUNDARY_HOUR_UTC = 7;
+  const todayBoundary = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), BOUNDARY_HOUR_UTC, 0, 0));
+  const dayStart = now.getTime() >= todayBoundary.getTime() ? todayBoundary : new Date(todayBoundary.getTime() - 24 * 60 * 60 * 1000);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+  return { dayStart, dayEnd };
 }
 
 exports.handler = async (event) => {
@@ -110,11 +120,14 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: "Faltan FOOTBALL_DATA_KEY o ANTHROPIC_API_KEY en las variables de entorno." }) };
   }
 
-  const dateKey = todayUTC();
+  const now = new Date();
+  const { dayStart, dayEnd } = footballDayWindow(now);
+  const dateKey = dayStart.toISOString().slice(0, 10);
   const store = getStore("predictions");
 
-  // Idempotencia: si ya generamos las predicciones de hoy, no gastamos otra
-  // llamada a la API de Anthropic ni la re-disparamos por accidente.
+  // Idempotencia: si ya generamos las predicciones de este día de fútbol,
+  // no gastamos otra llamada a la API de Anthropic ni la re-disparamos por
+  // accidente.
   const existing = await store.get(dateKey, { type: "json" }).catch(() => null);
   if (existing) {
     console.log(`Ya existían predicciones para ${dateKey} (${existing.predictions?.length ?? 0}), no se vuelve a llamar a la IA.`);
@@ -122,7 +135,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    // 1) Partidos de hoy (UTC) que todavía no arrancan.
+    // 1) Partidos del día de fútbol actual que todavía no arrancan.
     const matchesRes = await fetch(`https://api.football-data.org/v4/competitions/WC/matches`, {
       headers: { "X-Auth-Token": apiKey }
     });
@@ -130,26 +143,17 @@ exports.handler = async (event) => {
     const matchesData = await matchesRes.json();
     const allMatches = matchesData.matches || [];
 
-    // En vez de comparar "misma fecha de calendario UTC que hoy" (lo cual
-    // se rompe con partidos que arrancan tarde en EUA/México y cruzan a la
-    // madrugada UTC del día siguiente), buscamos cualquier partido que
-    // arranque dentro de las próximas 24h — sin importar en qué día
-    // calendario UTC caiga. También aceptamos status "TIMED" además de
-    // "SCHEDULED", ya que football-data.org usa "TIMED" una vez que la
-    // hora de inicio está confirmada (que es el caso normal del Mundial).
-    const NOW = Date.now();
-    const WINDOW_MS = 24 * 60 * 60 * 1000;
     const todays = allMatches.filter(m => {
       if (m.status !== "SCHEDULED" && m.status !== "TIMED") return false;
       if (!m.utcDate) return false;
       const kickoff = new Date(m.utcDate).getTime();
-      return kickoff >= NOW && kickoff <= NOW + WINDOW_MS;
+      return kickoff >= Math.max(dayStart.getTime(), now.getTime()) && kickoff < dayEnd.getTime();
     });
-    console.log(`Partidos totales en el feed: ${allMatches.length}. Pendientes en las próximas 24h: ${todays.length}.`);
+    console.log(`Día de fútbol: ${dayStart.toISOString()} a ${dayEnd.toISOString()}. Partidos totales en el feed: ${allMatches.length}. Pendientes en ese rango: ${todays.length}.`);
 
     if (todays.length === 0) {
-      console.log("No hay partidos SCHEDULED/TIMED en las próximas 24h. No se llamó a la IA, y no se guarda nada (así un reintento más tarde hoy sí vuelve a checar).");
-      return { statusCode: 200, body: JSON.stringify({ ok: true, count: 0, note: "no hay partidos en las próximas 24h" }) };
+      console.log("No hay partidos SCHEDULED/TIMED pendientes en este día de fútbol. No se llamó a la IA, y no se guarda nada (así un reintento más tarde hoy sí vuelve a checar).");
+      return { statusCode: 200, body: JSON.stringify({ ok: true, count: 0, note: "no hay partidos pendientes en este día de fútbol" }) };
     }
 
     // 2) Construir el contexto de cada partido: piso estructural (Klement) +
