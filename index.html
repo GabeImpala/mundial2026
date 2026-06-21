@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mundial 2026 · Siguiente Ronda</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0B0F2B">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mundial 2026">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -246,6 +254,12 @@
     <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Avanzan los 8 mejores terceros de los 12 grupos. Criterio: puntos, luego diferencia de gol y goles a favor (con datos en vivo).</p>
     <div class="cut-marker" id="cutMarkerTop" style="display:none;"></div>
     <ul class="thirds-list" id="thirdsList"></ul>
+  </section>
+
+  <section class="panel accent-amber">
+    <h2>Goleadores</h2>
+    <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Top 5 del torneo, directo de football-data.org — se actualiza solo cada 60 segundos, junto con todo lo demás.</p>
+    <ul class="thirds-list" id="scorersList"></ul>
   </section>
 
   <section class="panel accent-amber" id="projectionPanel">
@@ -895,7 +909,7 @@ function esName(team){
   return TEAM_ES_BY_NAME[key] || team.name || 'Por definir';
 }
 
-let state = { groups: null, live: false, matches: [], allMatches: [], liveMatchInfo: [] };
+let state = { groups: null, live: false, matches: [], allMatches: [], liveMatchInfo: [], scorers: [] };
 let workingGroups = null;
 
 function sortedGroup(letter){
@@ -916,6 +930,7 @@ function loadDemo(){
   state.matches = [];
   state.allMatches = [];
   state.liveMatchInfo = [];
+  state.scorers = [];
   render();
 }
 
@@ -945,9 +960,10 @@ async function fetchLiveData(){
   const original = refreshBtn.textContent;
   refreshBtn.textContent = 'Cargando…'; refreshBtn.disabled = true;
   try{
-    const [standingsRes, matchesRes] = await Promise.all([
+    const [standingsRes, matchesRes, scorersRes] = await Promise.all([
       fetch(`${API_BASE}/competitions/WC/standings`),
-      fetch(`${API_BASE}/competitions/WC/matches`)
+      fetch(`${API_BASE}/competitions/WC/matches`),
+      fetch(`${API_BASE}/competitions/WC/scorers?limit=5`)
     ]);
 
     if(standingsRes.status === 403) throw new Error('La API rechazó la clave configurada en el servidor (403). Revisa la variable FOOTBALL_DATA_KEY en Netlify.');
@@ -956,6 +972,9 @@ async function fetchLiveData(){
 
     const standingsData = await standingsRes.json();
     const matchesData = matchesRes.ok ? await matchesRes.json() : { matches: [] };
+    // Goleadores: si este endpoint falla por lo que sea, no debe tumbar el
+    // resto del refresco — simplemente se deja la lista de goleadores vacía.
+    const scorersData = scorersRes.ok ? await scorersRes.json().catch(() => ({ scorers: [] })) : { scorers: [] };
 
     const groups = {};
     for(const block of (standingsData.standings || [])){
@@ -977,6 +996,7 @@ async function fetchLiveData(){
     state.live = true;
     state.allMatches = matchesData.matches || [];
     state.matches = state.allMatches.filter(m => m.stage && m.stage !== 'GROUP_STAGE');
+    state.scorers = scorersData.scorers || [];
 
     render();
     showOk(`Datos en vivo cargados correctamente · ${new Date().toLocaleString('es-MX')}`);
@@ -1054,6 +1074,39 @@ function renderThirds(){
     note.textContent = 'Modo de muestra: desempate simplificado solo por puntos. Conecta datos en vivo para aplicar diferencia de gol y goles a favor.';
     list.appendChild(note);
   }
+}
+
+function renderScorers(){
+  const list = document.getElementById('scorersList');
+  list.innerHTML = '';
+
+  if(!state.live){
+    const li = document.createElement('li');
+    li.style.cssText = 'font-size:11.5px;color:var(--muted);border:none;padding-top:6px;';
+    li.textContent = 'Conecta datos en vivo (botón "Actualizar ahora" arriba) para ver la tabla de goleadores.';
+    list.appendChild(li);
+    return;
+  }
+
+  if(!state.scorers || state.scorers.length === 0){
+    const li = document.createElement('li');
+    li.style.cssText = 'font-size:11.5px;color:var(--muted);border:none;padding-top:6px;';
+    li.textContent = 'Todavía no hay goleadores registrados — apenas arrancan los partidos.';
+    list.appendChild(li);
+    return;
+  }
+
+  state.scorers.slice(0, 5).forEach((s, i) => {
+    const li = document.createElement('li');
+    const playerName = s.player?.name || 'Jugador';
+    const teamName = s.team ? esName(s.team) : '';
+    li.innerHTML = `
+      <span class="rk">${i+1}</span>
+      <span>${playerName} <span class="grp">${teamName.toUpperCase()}</span></span>
+      <span class="grp"></span>
+      <span class="pts">${s.goals ?? 0} ${s.goals === 1 ? 'gol' : 'goles'}</span>`;
+    list.appendChild(li);
+  });
 }
 
 const STAGE_LABELS = {
@@ -1301,10 +1354,21 @@ function computeProjectedGroups(){
 
     const hg = m.score?.fullTime?.home;
     const ag = m.score?.fullTime?.away;
-    const isFinished = m.status === 'FINISHED';
-    const isLive = m.status === 'IN_PLAY' || m.status === 'PAUSED';
-    if(!isFinished && !isLive) return; // SCHEDULED, POSTPONED, etc. no aportan nada todavía
+    const rawIsFinished = m.status === 'FINISHED';
+    const rawIsLive = m.status === 'IN_PLAY' || m.status === 'PAUSED';
+    if(!rawIsFinished && !rawIsLive) return; // SCHEDULED, POSTPONED, etc.: no ha arrancado, no aporta nada
     if(hg == null || ag == null) return;
+
+    // El PJ sube en cuanto el partido ARRANCA (como la mayoría de sitios de
+    // resultados, incluyendo Google), no hasta que termina — ambos casos ya
+    // aportan goles/puntos por igual. "isLive" de aquí en adelante solo
+    // controla el indicador visual (punto rojo / ticker en vivo): si un
+    // partido lleva más de 3h "en vivo" (más de lo que dura un partido real),
+    // asumimos que el estado se quedó atorado en el feed y dejamos de
+    // mostrarlo como en curso, aunque ya cuente como jugado de todas formas.
+    const STALE_LIVE_MS = 3 * 60 * 60 * 1000;
+    const kickoffPassedMs = m.utcDate ? (Date.now() - new Date(m.utcDate).getTime()) : 0;
+    const isLive = rawIsLive && kickoffPassedMs <= STALE_LIVE_MS;
 
     home.gf += hg; home.ga += ag;
     away.gf += ag; away.ga += hg;
@@ -1312,9 +1376,9 @@ function computeProjectedGroups(){
     else if(hg < ag){ away.points += 3; away.won += 1; home.lost += 1; }
     else { home.points += 1; away.points += 1; home.draw += 1; away.draw += 1; }
 
-    if(isFinished){
-      home.played += 1; away.played += 1;
-    } else {
+    home.played += 1; away.played += 1;
+
+    if(isLive){
       home.live = true; away.live = true;
       state.liveMatchInfo.push({
         group: (m.group || '').trim().slice(-1),
@@ -1420,6 +1484,7 @@ function render(){
   renderCalendar();
   renderGroups();
   renderThirds();
+  renderScorers();
   renderFullBracket();
   renderBracket();
   setStatus(state.live, state.live ? `en vivo · ${new Date().toLocaleTimeString('es-MX')}` : 'datos de muestra · 19 jun 2026');
@@ -1435,6 +1500,15 @@ fetchLiveData();
 // Se actualiza solo cada 60s, para que un gol en un partido en curso
 // mueva las posiciones sin que tengas que darle clic a "Actualizar ahora".
 setInterval(fetchLiveData, 60000);
+
+// Registro del service worker: habilita "Agregar a pantalla de inicio" en
+// Android/Chrome. Si falla (navegador viejo, modo privado, etc.) la app
+// sigue funcionando normal, solo sin la opción de instalarse.
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
