@@ -6,3 +6,6 @@
   from = "/api/*"
   to = "/.netlify/functions/proxy/:splat"
   status = 200
+
+[functions."predict"]
+  schedule = "0 8 * * *"
