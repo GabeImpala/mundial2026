@@ -1765,6 +1765,20 @@ document.getElementById('refreshBtn').addEventListener('click', fetchLiveData);
 
 // Mostramos datos de muestra de inmediato para que la página nunca cargue
 // vacía, y al mismo tiempo pedimos los datos en vivo en segundo plano.
+async function fetchOdds(){
+  try {
+    const res = await fetch('/.netlify/functions/get-odds');
+    if(!res.ok) return;
+    const data = await res.json();
+    state.odds = data.odds || [];
+    localOdds = [...state.odds];
+    if(document.getElementById('adminContent')?.style.display !== 'none'){
+      renderAdminOddsList();
+    }
+    renderScenarios();
+  } catch(err){ /* silencioso */ }
+}
+
 loadDemo();
 fetchLiveData();
 fetchPredictions();
@@ -1796,6 +1810,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if(target === 'escenarios') renderScenarios();
   });
 });
+
 
 // ── ADMIN PASSWORD ──
 const ADMIN_PW = 'Hasl3tEngin33ring';
@@ -1830,7 +1845,8 @@ document.getElementById('adminPwInput').addEventListener('keydown', e => {
   if(e.key === 'Enter') document.getElementById('adminPwBtn').click();
 });
 
-document.getElementById('adminLogoutBtn').addEventListener('click', () => {
+const logoutBtn = document.getElementById('adminLogoutBtn');
+if(logoutBtn) logoutBtn.addEventListener('click', () => {
   sessionStorage.removeItem('mundial2026_admin');
   localOdds = [];
   document.getElementById('adminContent').style.display = 'none';
@@ -1942,22 +1958,6 @@ document.getElementById('clearOddsBtn').addEventListener('click', async () => {
   }
 });
 
-async function fetchOdds(){
-  try {
-    const res = await fetch('/.netlify/functions/get-odds');
-    if(!res.ok) return;
-    const data = await res.json();
-    state.odds = data.odds || [];
-    // Siempre sincroniza la lista local del admin con lo que hay en Blobs,
-    // no solo cuando acaba de autenticarse — así si entra al tab Admin
-    // después de que fetchOdds ya corrió, ve los momios correctos.
-    localOdds = [...state.odds];
-    if(document.getElementById('adminContent')?.style.display !== 'none'){
-      renderAdminOddsList();
-    }
-    renderScenarios();
-  } catch(err){ /* silencioso */ }
-}
 
 // ── ESCENARIOS ──
 function impliedProbs(home, draw, away){
