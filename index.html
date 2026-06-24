@@ -375,7 +375,7 @@
   <div class="tab-section" id="tab-escenarios">
     <section class="panel accent-mint">
       <h2>Escenarios más probables</h2>
-      <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Los 16 cruces proyectados para los dieciseisavos de final, basados en cómo van los grupos ahorita. Donde hay partidos pendientes que pueden cambiar el resultado, los momios del mercado nos dicen qué tan probable es cada escenario. No es una predicción exacta — es la foto más honesta de lo que puede pasar.</p>
+      <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Para cada cruce de dieciseisavos, simulamos todos los escenarios posibles de los partidos que faltan — ponderados por las probabilidades implícitas de los momios del mercado. El cruce más probable aparece arriba; los alternativos abajo con su % de ocurrencia. Entre más alto el %, más "cantado" está ese enfrentamiento.</p>
       <div id="scenariosGrid" class="bracket-list">
         <div class="empty-state"><strong>Sin momios cargados.</strong><br>El admin necesita capturar los momios de los partidos pendientes.</div>
       </div>
@@ -1946,6 +1946,91 @@ function impliedProbs(home, draw, away){
   return { home:(1/home)/total, draw:(1/draw)/total, away:(1/away)/total };
 }
 
+// Dada la tabla actual de un grupo y los momios de sus partidos pendientes,
+// calcula la probabilidad de que cada equipo quede en cada posición (1°, 2°, 3°).
+// Estrategia: simulación discreta de los resultados posibles (victoria/empate/derrota)
+// para cada partido pendiente, ponderada por las probabilidades implícitas de los momios.
+function computeGroupPositionProbs(groupLetter, pendingOdds){
+  const grp = workingGroups[groupLetter];
+  if(!grp || grp.length === 0) return {};
+
+  // Equipos del grupo con sus stats actuales
+  const teams = grp.map(t => ({
+    id: t.id, name: t.name, esName: esName(t),
+    pts: t.points||0, gd: (t.gf||0)-(t.ga||0), gf: t.gf||0
+  }));
+
+  // Encuentra los partidos pendientes de este grupo que tienen momios capturados
+  const pending = (state.allMatches||[]).filter(m =>
+    m.stage === 'GROUP_STAGE' &&
+    (m.group||'').trim().slice(-1) === groupLetter &&
+    (m.status === 'SCHEDULED' || m.status === 'TIMED')
+  );
+
+  if(pending.length === 0){
+    // Grupo ya terminado — posiciones deterministas
+    const sorted = [...teams].sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf);
+    const result = {};
+    teams.forEach(t => { result[t.id] = {1:0, 2:0, 3:0, 4:0}; });
+    sorted.forEach((t,i) => { result[t.id][i+1] = 1; });
+    return result;
+  }
+
+  // Para cada partido pendiente, buscamos momios capturados
+  function findOdds(m){
+    const homeName = (m.homeTeam?.name||'').toLowerCase();
+    const awayName = (m.awayTeam?.name||'').toLowerCase();
+    for(const o of pendingOdds){
+      const label = (o.matchLabel||'').toLowerCase();
+      if(label.includes(homeName.split(' ')[0]) || label.includes(awayName.split(' ')[0])){
+        return impliedProbs(o.home, o.draw, o.away);
+      }
+    }
+    return null; // sin momios para este partido
+  }
+
+  // Genera todos los escenarios posibles (3^n para n partidos)
+  // Cada escenario es un array de resultados: 'H' | 'D' | 'A'
+  const scenarios = [[]];
+  for(const m of pending){
+    const p = findOdds(m);
+    const newScenarios = [];
+    for(const s of scenarios){
+      newScenarios.push([...s, {m, result:'H', prob: p ? p.home : 1/3}]);
+      newScenarios.push([...s, {m, result:'D', prob: p ? p.draw : 1/3}]);
+      newScenarios.push([...s, {m, result:'A', prob: p ? p.away : 1/3}]);
+    }
+    scenarios.length = 0;
+    scenarios.push(...newScenarios);
+  }
+
+  // Acumula probabilidades de posición por equipo
+  const posProbs = {};
+  teams.forEach(t => { posProbs[t.id] = {1:0, 2:0, 3:0, 4:0}; });
+
+  for(const scenario of scenarios){
+    // Probabilidad del escenario = producto de las probs de cada resultado
+    const scenarioProb = scenario.reduce((acc, s) => acc * s.prob, 1);
+
+    // Aplica los resultados al estado del grupo
+    const simTeams = teams.map(t => ({...t}));
+    for(const {m, result} of scenario){
+      const home = simTeams.find(t => t.id == m.homeTeam?.id);
+      const away = simTeams.find(t => t.id == m.awayTeam?.id);
+      if(!home || !away) continue;
+      if(result === 'H'){ home.pts += 3; home.gd += 1; home.gf += 1; away.gd -= 1; }
+      else if(result === 'A'){ away.pts += 3; away.gd += 1; away.gf += 1; home.gd -= 1; }
+      else { home.pts += 1; away.pts += 1; }
+    }
+    // Ordena y asigna posiciones
+    simTeams.sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf);
+    simTeams.forEach((t, i) => {
+      if(posProbs[t.id]) posProbs[t.id][i+1] = (posProbs[t.id][i+1]||0) + scenarioProb;
+    });
+  }
+  return posProbs;
+}
+
 function renderScenarios(){
   const grid = document.getElementById('scenariosGrid');
   if(!grid) return;
@@ -1958,40 +2043,104 @@ function renderScenarios(){
     grid.innerHTML = '<div class="empty-state">Cargando datos en vivo...</div>';
     return;
   }
-  const cache = {};
-  const slots = [];
-  for(let id = 89; id <= 104; id++){
-    try {
-      const r = resolveMatch(id, cache);
-      slots.push({ matchNum: id, homeLabel: r.home || 'Por definir', awayLabel: r.away || 'Por definir' });
-    } catch(e) {
-      slots.push({ matchNum: id, homeLabel: 'Por definir', awayLabel: 'Por definir' });
-    }
+
+  // Calcula probabilidades de posición para todos los grupos
+  const groupProbs = {};
+  const letters = Object.keys(workingGroups);
+  for(const g of letters){
+    groupProbs[g] = computeGroupPositionProbs(g, odds);
   }
-  grid.innerHTML = slots.map(slot => {
-    const relevant = odds.filter(o => {
-      const label = (o.matchLabel||'').toLowerCase();
-      const h = (slot.homeLabel||'').toLowerCase().split(' ')[0];
-      const a = (slot.awayLabel||'').toLowerCase().split(' ')[0];
-      return h.length > 2 && (label.includes(h) || label.includes(a));
-    });
-    const oddsHtml = relevant.map(o => {
-      const p = impliedProbs(o.home, o.draw, o.away);
-      const [hl, al] = o.matchLabel.split(/\s+vs\s+/i);
-      return `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);font-family:'Roboto Mono',monospace;">
-        ${hl?.trim()||'Local'} <strong style="color:var(--gold);">${Math.round(p.home*100)}%</strong> ·
-        Empate ${Math.round(p.draw*100)}% ·
-        ${al?.trim()||'Visit.'} <strong style="color:var(--gold);">${Math.round(p.away*100)}%</strong>
-      </div>`;
-    }).join('');
+
+  // Función que regresa P(equipo queda en posición pos del grupo g)
+  function pPos(g, pos){
+    const gp = groupProbs[g];
+    if(!gp) return {};
+    // Regresa objeto {teamId: prob, ...}
+    const result = {};
+    const grp = workingGroups[g]||[];
+    for(const t of grp){
+      result[t.id] = (gp[t.id]?.[pos])||0;
+    }
+    return result;
+  }
+
+  // Para los 16 cruces R32 (partidos 73-88), calcula los posibles enfrentamientos
+  // con su probabilidad de ocurrencia
+  const crossings = [];
+  for(let id = 73; id <= 88; id++){
+    const m = FULL_BRACKET[id];
+    if(!m || m.round !== 'R32') continue;
+
+    // Determina los posibles equipos de cada slot
+    function slotCandidates(slot){
+      if(!slot) return [{name:'Por definir', prob:1}];
+      const grp = workingGroups[slot.group]||[];
+      const probs = pPos(slot.group, slot.pos);
+      return grp.map(t => ({
+        name: esName(t),
+        id: t.id,
+        prob: probs[t.id]||0
+      })).filter(c => c.prob > 0.01).sort((a,b) => b.prob-a.prob);
+    }
+
+    let homeCandidates, awayCandidates;
+    if(m.type === 'fixed'){
+      homeCandidates = slotCandidates(m.home);
+      awayCandidates = slotCandidates(m.away);
+    } else if(m.type === 'third'){
+      // Para slots de terceros lugares usamos el 1° del grupo anfitrión vs mejor 3°
+      homeCandidates = slotCandidates(m.home);
+      // Los candidatos del tercero son los equipos en pos 3 de los grupos candidatos
+      awayCandidates = (m.candidates||[]).flatMap(g => {
+        const grp = workingGroups[g]||[];
+        const probs = pPos(g, 3);
+        return grp.map(t => ({
+          name: esName(t), id: t.id,
+          prob: (probs[t.id]||0) / (m.candidates.length)
+        }));
+      }).filter(c => c.prob > 0.005).sort((a,b) => b.prob-a.prob).slice(0,3);
+      if(awayCandidates.length === 0) awayCandidates = [{name:'Mejor 3°', prob:1}];
+    } else {
+      homeCandidates = [{name:'Por definir', prob:1}];
+      awayCandidates = [{name:'Por definir', prob:1}];
+    }
+
+    // Genera los cruces posibles con su probabilidad
+    const possibleMatches = [];
+    for(const h of homeCandidates.slice(0,3)){
+      for(const a of awayCandidates.slice(0,3)){
+        const matchProb = h.prob * a.prob;
+        if(matchProb > 0.01){
+          possibleMatches.push({ home: h.name, away: a.name, prob: matchProb });
+        }
+      }
+    }
+    possibleMatches.sort((a,b) => b.prob-a.prob);
+
+    crossings.push({ matchNum: id, matches: possibleMatches.slice(0,4), date: m.date, venue: m.venue });
+  }
+
+  // Renderiza
+  grid.innerHTML = crossings.map(c => {
+    const topMatch = c.matches[0];
+    const topProb = topMatch ? Math.round(topMatch.prob * 100) : 0;
+    const probColor = topProb >= 70 ? 'var(--lime)' : topProb >= 40 ? 'var(--gold)' : 'var(--muted)';
+
     return `<div class="match-card">
-      <div style="font-size:10px;color:var(--muted);font-family:'Roboto Mono',monospace;margin-bottom:6px;">PARTIDO ${slot.matchNum} · 16AVOS</div>
-      <div class="vs">
-        <div class="side"><span>${slot.homeLabel}</span></div>
-        <div class="versus">VS</div>
-        <div class="side"><span>${slot.awayLabel}</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:10px;color:var(--muted);font-family:'Roboto Mono',monospace;">PARTIDO ${c.matchNum} · ${c.date} · ${c.venue}</span>
+        <span style="font-size:11px;font-weight:700;color:${probColor};font-family:'Roboto Mono',monospace;">${topProb}%</span>
       </div>
-      ${oddsHtml}
+      ${c.matches.map((match, i) => `
+        <div style="${i>0?'margin-top:6px;padding-top:6px;border-top:1px solid var(--line);opacity:0.7;':''}">
+          <div class="vs" style="font-size:${i===0?'14.5':'12.5'}px;">
+            <div class="side"><span>${match.home}</span></div>
+            <div class="versus">VS</div>
+            <div class="side"><span>${match.away}</span></div>
+          </div>
+          ${i>0?`<div style="font-size:10.5px;color:var(--muted);font-family:'Roboto Mono',monospace;margin-top:3px;">probabilidad: ${Math.round(match.prob*100)}%</div>`:''}
+        </div>
+      `).join('')}
     </div>`;
   }).join('');
 }
