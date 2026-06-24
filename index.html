@@ -286,8 +286,8 @@
   <button class="tab-btn active" data-tab="grupos">Grupos</button>
   <button class="tab-btn" data-tab="calendario">Calendario</button>
   <button class="tab-btn" data-tab="predicciones">IA Predicciones</button>
-  <button class="tab-btn" data-tab="momios">Momios</button>
-  <button class="tab-btn" data-tab="bracket">Bracket</button>
+  <button class="tab-btn" data-tab="bracket">Si hoy terminara</button>
+  <button class="tab-btn" data-tab="escenarios">Escenarios</button>
   <button class="tab-btn" data-tab="admin">Admin</button>
 </nav>
 
@@ -353,27 +353,14 @@
     </section>
   </div>
 
-  <!-- ── MOMIOS ── -->
-  <div class="tab-section" id="tab-momios">
-    <section class="panel accent-amber">
-      <h2>Momios y posibles cruces</h2>
-      <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Momios actualizados para cada partido. Los porcentajes implícitos se calculan automáticamente.</p>
-      <div class="odds-grid" id="oddsGrid">
-        <div class="empty-state"><strong>Sin momios cargados aún.</strong><br>Ve a la pestaña Admin para agregarlos.</div>
-      </div>
-    </section>
-  </div>
-
-  <!-- ── BRACKET ── -->
+  <!-- ── SI HOY TERMINARA ── -->
   <div class="tab-section" id="tab-bracket">
     <section class="panel accent-amber" id="projectionPanel">
-      <h2>Bracket completo: dieciseisavos → final</h2>
+      <h2>Si hoy terminara el Mundial</h2>
       <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">
-        Dieciseisavos es <strong style="color:var(--chalk);">proyección con la tabla de posiciones de hoy</strong>
+        Proyección de los 16avos con la tabla de posiciones de hoy
         (incluido el rival exacto contra terceros, según el Anexo C oficial de la FIFA). De octavos en adelante,
-        cada partido se resuelve solo: mientras no haya ganador real se muestra "Ganador Partido N"; en cuanto
-        football-data.org confirme el resultado, aparece el equipo y el marcador, y el cruce de la siguiente ronda
-        se arma solo.
+        cada partido se resuelve solo conforme llegan los resultados reales.
       </p>
       <div class="bracket-list" id="projectionArea"></div>
     </section>
@@ -381,6 +368,17 @@
     <section class="panel accent-teal">
       <h2>Cruces oficiales confirmados</h2>
       <div id="bracketArea"></div>
+    </section>
+  </div>
+
+  <!-- ── ESCENARIOS MÁS PROBABLES ── -->
+  <div class="tab-section" id="tab-escenarios">
+    <section class="panel accent-mint">
+      <h2>Escenarios más probables</h2>
+      <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Posibles cruces en 16avos basados en los momios de los partidos pendientes. Los % son probabilidades implícitas calculadas a partir de los momios capturados.</p>
+      <div id="scenariosGrid" class="bracket-list">
+        <div class="empty-state"><strong>Sin momios cargados.</strong><br>El admin necesita capturar los momios de los partidos pendientes.</div>
+      </div>
     </section>
   </div>
 
@@ -399,20 +397,29 @@
       </div>
 
       <div id="adminContent" style="display:none;">
-        <p style="font-size:12.5px;color:var(--muted);margin-top:0;">Pega los momios de los partidos aquí. Un partido por línea.</p>
-        <div class="admin-form">
+        <p style="font-size:12.5px;color:var(--muted);margin-top:0;">Agrega los momios de los partidos pendientes. Se guardan en la nube — todos los visitantes los ven.</p>
+
+        <!-- Agregar partido -->
+        <div class="admin-form" style="margin-bottom:20px;">
           <div class="admin-hint">
-            Formato por línea:<br>
-            <code>España vs Arabia Saudita | 1.60 | 3.80 | 5.50</code><br>
-            (Nombre local | momio local | momio empate | momio visitante)
+            Formato: <code>España vs Arabia Saudita | 1.60 | 3.80 | 5.50</code><br>
+            (Local | momio local | momio empate | momio visitante)
           </div>
-          <textarea id="oddsInput" placeholder="España vs Arabia Saudita | 1.60 | 3.80 | 5.50&#10;Argentina vs Austria | 1.25 | 5.50 | 9.00"></textarea>
           <div class="config-row">
-            <button id="saveOddsBtn">Guardar momios</button>
-            <button class="ghost danger" id="clearOddsBtn">Borrar todo</button>
+            <input type="text" id="oddsInput" placeholder="España vs Arabia | 1.60 | 3.80 | 5.50" style="flex:1;">
+            <button id="addOddsBtn">Agregar</button>
           </div>
           <div class="msg" id="oddsMsg"></div>
         </div>
+
+        <!-- Lista de partidos cargados -->
+        <div id="adminOddsList" style="margin-bottom:16px;"></div>
+
+        <div class="config-row">
+          <button id="saveOddsBtn">💾 Guardar todo</button>
+          <button class="ghost danger" id="clearOddsBtn">Borrar todo</button>
+        </div>
+        <div class="msg" id="oddsSaveMsg"></div>
       </div>
     </section>
   </div>
@@ -1047,7 +1054,7 @@ function esName(team){
   return TEAM_ES_BY_NAME[key] || team.name || 'Por definir';
 }
 
-let state = { groups: null, live: false, matches: [], allMatches: [], liveMatchInfo: [], scorers: [], predictions: [] };
+let state = { groups: null, live: false, matches: [], allMatches: [], liveMatchInfo: [], scorers: [], predictions: [], odds: [] };
 let workingGroups = null;
 
 function sortedGroup(letter){
@@ -1758,6 +1765,7 @@ document.getElementById('refreshBtn').addEventListener('click', fetchLiveData);
 loadDemo();
 fetchLiveData();
 fetchPredictions();
+fetchOdds();
 
 // Se actualiza solo cada 60s, para que un gol en un partido en curso
 // mueva las posiciones sin que tengas que darle clic a "Actualizar ahora".
@@ -1782,7 +1790,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.getElementById('tab-' + target).classList.add('active');
     // Al cambiar a predicciones, re-renderiza por si cambiaron los datos en vivo
     if(target === 'predicciones') renderPredictions();
-    if(target === 'momios') renderOdds();
+    if(target === 'escenarios') renderScenarios();
   });
 });
 
@@ -1792,7 +1800,7 @@ const ADMIN_PW = 'Hasl3tEngin33ring';
 function unlockAdmin(){
   document.getElementById('adminLock').style.display = 'none';
   document.getElementById('adminContent').style.display = 'block';
-  initOdds();
+  renderAdminOddsList();
 }
 
 // Auto-unlock if already authenticated this session
@@ -1822,83 +1830,175 @@ document.getElementById('adminPwInput').addEventListener('keydown', e => {
 
 function oddsToProb(odds){ return odds > 0 ? Math.round(100 / odds) : 0; }
 
-function parseOddsText(text){
-  const lines = text.trim().split('\n').filter(l => l.trim());
-  const result = [];
-  for(const line of lines){
-    const parts = line.split('|').map(p => p.trim());
-    if(parts.length < 4) continue;
-    const [matchLabel, h, d, a] = parts;
-    const home = parseFloat(h), draw = parseFloat(d), away = parseFloat(a);
-    if(isNaN(home) || isNaN(draw) || isNaN(away)) continue;
-    result.push({ matchLabel, home, draw, away });
-  }
-  return result;
+function oddsToProb(odds){ return odds > 0 ? Math.round(100 / odds) : 0; }
+
+function parseOddsLine(line){
+  const parts = line.split('|').map(p => p.trim());
+  if(parts.length < 4) return null;
+  const [matchLabel, h, d, a] = parts;
+  const home = parseFloat(h), draw = parseFloat(d), away = parseFloat(a);
+  if(isNaN(home) || isNaN(draw) || isNaN(away)) return null;
+  return { matchLabel, home, draw, away };
 }
 
-function renderOdds(){
-  const grid = document.getElementById('oddsGrid');
-  const raw = localStorage.getItem('mundial2026_odds');
-  const odds = raw ? JSON.parse(raw) : [];
-  if(odds.length === 0){
-    grid.innerHTML = '<div class="empty-state"><strong>Sin momios cargados aún.</strong><br>Ve a la pestaña Admin para agregarlos.</div>';
+function renderAdminOddsList(){
+  const el = document.getElementById('adminOddsList');
+  if(!el) return;
+  if(localOdds.length === 0){
+    el.innerHTML = '<p style="font-size:12px;color:var(--muted);">Sin partidos cargados aún.</p>';
     return;
   }
-  grid.innerHTML = odds.map(o => {
-    const ph = oddsToProb(o.home), pd = oddsToProb(o.draw), pa = oddsToProb(o.away);
-    const [homeTeam, awayTeam] = o.matchLabel.split(/\s+vs\s+/i);
-    return `<div class="odds-card">
-      <div class="match-title">${o.matchLabel}</div>
-      <div class="odds-row">
-        <span class="odds-label">${homeTeam || 'Local'}</span>
-        <span class="odds-val">${o.home.toFixed(2)}</span>
-        <span class="odds-prob">${ph}%</span>
+  el.innerHTML = localOdds.map((o, i) => `
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;">
+      <span style="flex:1;"><strong>${o.matchLabel}</strong> &nbsp;
+        <span style="font-family:'Roboto Mono',monospace;font-size:11px;color:var(--muted);">
+          ${o.home} / ${o.draw} / ${o.away}
+        </span>
+      </span>
+      <button class="ghost danger" style="padding:5px 10px;font-size:11px;" onclick="removeOdds(${i})">✕ Quitar</button>
+    </div>`).join('');
+}
+
+function removeOdds(i){
+  localOdds.splice(i, 1);
+  renderAdminOddsList();
+}
+
+document.getElementById('addOddsBtn').addEventListener('click', () => {
+  const input = document.getElementById('oddsInput');
+  const msg = document.getElementById('oddsMsg');
+  const parsed = parseOddsLine(input.value);
+  if(!parsed){
+    msg.className = 'msg error'; msg.style.display = 'block';
+    msg.textContent = 'Formato inválido. Ejemplo: España vs Arabia | 1.60 | 3.80 | 5.50';
+    return;
+  }
+  localOdds.push(parsed);
+  input.value = '';
+  msg.style.display = 'none';
+  renderAdminOddsList();
+});
+document.getElementById('oddsInput').addEventListener('keydown', e => {
+  if(e.key === 'Enter') document.getElementById('addOddsBtn').click();
+});
+
+document.getElementById('saveOddsBtn').addEventListener('click', async () => {
+  const msg = document.getElementById('oddsSaveMsg');
+  msg.className = 'msg'; msg.style.display = 'block';
+  msg.textContent = 'Guardando...';
+  try {
+    const res = await fetch('/.netlify/functions/save-odds', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_PW },
+      body: JSON.stringify({ odds: localOdds })
+    });
+    const data = await res.json();
+    if(data.ok){
+      msg.className = 'msg ok';
+      msg.textContent = `${data.count} partido(s) guardado(s) — ya visibles para todos.`;
+      state.odds = localOdds;
+      renderScenarios();
+    } else { throw new Error(data.error || 'Error desconocido'); }
+  } catch(err){
+    msg.className = 'msg error';
+    msg.textContent = 'Error al guardar: ' + err.message;
+  }
+});
+
+document.getElementById('clearOddsBtn').addEventListener('click', async () => {
+  if(!confirm('¿Borrar todos los momios?')) return;
+  localOdds = [];
+  renderAdminOddsList();
+  const msg = document.getElementById('oddsSaveMsg');
+  try {
+    await fetch('/.netlify/functions/save-odds', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_PW },
+      body: JSON.stringify({ odds: [] })
+    });
+    msg.className = 'msg ok'; msg.style.display = 'block';
+    msg.textContent = 'Momios borrados.';
+    state.odds = [];
+    renderScenarios();
+  } catch(err){
+    msg.className = 'msg error'; msg.style.display = 'block';
+    msg.textContent = 'Error: ' + err.message;
+  }
+});
+
+async function fetchOdds(){
+  try {
+    const res = await fetch('/.netlify/functions/get-odds');
+    if(!res.ok) return;
+    const data = await res.json();
+    state.odds = data.odds || [];
+    if(sessionStorage.getItem('mundial2026_admin') === '1'){
+      localOdds = [...state.odds];
+      renderAdminOddsList();
+    }
+    renderScenarios();
+  } catch(err){ /* silencioso */ }
+}
+
+// ── ESCENARIOS ──
+function impliedProbs(home, draw, away){
+  const total = 1/home + 1/draw + 1/away;
+  return { home:(1/home)/total, draw:(1/draw)/total, away:(1/away)/total };
+}
+
+function renderScenarios(){
+  const grid = document.getElementById('scenariosGrid');
+  if(!grid) return;
+  const odds = state.odds || [];
+  if(odds.length === 0){
+    grid.innerHTML = '<div class="empty-state"><strong>Sin momios cargados.</strong><br>El admin necesita capturar los momios de los partidos pendientes.</div>';
+    return;
+  }
+  if(!state.live || !workingGroups){
+    grid.innerHTML = '<div class="empty-state">Cargando datos en vivo...</div>';
+    return;
+  }
+  const cache = {};
+  const slots = [];
+  for(let id = 89; id <= 104; id++){
+    try {
+      const r = resolveMatch(id, cache);
+      slots.push({ matchNum: id, homeLabel: r.home || 'Por definir', awayLabel: r.away || 'Por definir' });
+    } catch(e) {
+      slots.push({ matchNum: id, homeLabel: 'Por definir', awayLabel: 'Por definir' });
+    }
+  }
+  grid.innerHTML = slots.map(slot => {
+    const relevant = odds.filter(o => {
+      const label = (o.matchLabel||'').toLowerCase();
+      const h = (slot.homeLabel||'').toLowerCase().split(' ')[0];
+      const a = (slot.awayLabel||'').toLowerCase().split(' ')[0];
+      return h.length > 2 && (label.includes(h) || label.includes(a));
+    });
+    const oddsHtml = relevant.map(o => {
+      const p = impliedProbs(o.home, o.draw, o.away);
+      const [hl, al] = o.matchLabel.split(/\s+vs\s+/i);
+      return `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);font-family:'Roboto Mono',monospace;">
+        ${hl?.trim()||'Local'} <strong style="color:var(--gold);">${Math.round(p.home*100)}%</strong> ·
+        Empate ${Math.round(p.draw*100)}% ·
+        ${al?.trim()||'Visit.'} <strong style="color:var(--gold);">${Math.round(p.away*100)}%</strong>
+      </div>`;
+    }).join('');
+    return `<div class="match-card">
+      <div style="font-size:10px;color:var(--muted);font-family:'Roboto Mono',monospace;margin-bottom:6px;">PARTIDO ${slot.matchNum} · 16AVOS</div>
+      <div class="vs">
+        <div class="side"><span>${slot.homeLabel}</span></div>
+        <div class="versus">VS</div>
+        <div class="side"><span>${slot.awayLabel}</span></div>
       </div>
-      <div class="odds-row">
-        <span class="odds-label">Empate</span>
-        <span class="odds-val">${o.draw.toFixed(2)}</span>
-        <span class="odds-prob">${pd}%</span>
-      </div>
-      <div class="odds-row">
-        <span class="odds-label">${awayTeam || 'Visitante'}</span>
-        <span class="odds-val">${o.away.toFixed(2)}</span>
-        <span class="odds-prob">${pa}%</span>
-      </div>
+      ${oddsHtml}
     </div>`;
   }).join('');
 }
 
-document.getElementById('saveOddsBtn').addEventListener('click', () => {
-  const text = document.getElementById('oddsInput').value;
-  const parsed = parseOddsText(text);
-  const msg = document.getElementById('oddsMsg');
-  if(parsed.length === 0){
-    msg.className = 'msg error'; msg.style.display = 'block';
-    msg.textContent = 'No se pudo leer ningún partido. Revisa el formato: Equipo A vs Equipo B | 1.60 | 3.80 | 5.50';
-    return;
-  }
-  localStorage.setItem('mundial2026_odds', JSON.stringify(parsed));
-  msg.className = 'msg ok'; msg.style.display = 'block';
-  msg.textContent = `${parsed.length} partido(s) guardado(s). Ve a la pestaña Momios para verlos.`;
-  renderOdds();
-});
+let localOdds = [];
 
-document.getElementById('clearOddsBtn').addEventListener('click', () => {
-  localStorage.removeItem('mundial2026_odds');
-  document.getElementById('oddsInput').value = '';
-  const msg = document.getElementById('oddsMsg');
-  msg.className = 'msg ok'; msg.style.display = 'block';
-  msg.textContent = 'Momios borrados.';
-  renderOdds();
-});
-
-function initOdds(){
-  const raw = localStorage.getItem('mundial2026_odds');
-  if(!raw) return;
-  const odds = JSON.parse(raw);
-  const textarea = document.getElementById('oddsInput');
-  textarea.value = odds.map(o => `${o.matchLabel} | ${o.home} | ${o.draw} | ${o.away}`).join('\n');
-}
+function initOdds(){ /* no-op: los momios se cargan via fetchOdds() */ }
 </script>
 </body>
 </html>
