@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mundial 2026 · Siguiente Ronda</title>
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#0A0908">
+<meta name="theme-color" content="#0D1B2A">
 <link rel="icon" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
 <meta name="mobile-web-app-capable" content="yes">
@@ -16,32 +16,33 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    /* Base: negro/carbón institucional, como la paleta oficial del emblema
-       2026 (negro-blanco-oro), no un "dark mode" genérico de neón. */
-    --bg-deep:#0A0908;
-    --bg-deep-2:#15120D;
-    --card:#1A160F;
-    --card-2:#211B12;
-    --line: rgba(242,239,232,0.10);
-    --text:#F2EFE8;
-    --muted:#A8A095;
-    /* Oro: el acento institucional del emblema/trofeo oficial 2026. */
-    --gold:#C9A24B;
-    --gold-bright:#E8C468;
-    /* Las tres olas del balón oficial "Trionda" (Canadá/EUA/México),
-       usadas como acentos FUNCIONALES, no decorativos: rojo = en vivo/
-       urgente, azul = informativo, verde = estadística positiva. */
-    --trionda-red:#E1432C;
-    --trionda-blue:#3E7CC2;
-    --trionda-green:#3C9468;
-    /* alias para no romper el resto del código existente */
-    --teal:var(--gold);
-    --magenta:var(--trionda-red);
+    /* Azul marino profundo — base principal */
+    --bg-deep:#0D1B2A;
+    --bg-deep-2:#112236;
+    --card:#162A3F;
+    --card-2:#1A3350;
+    --line:rgba(200,230,255,0.10);
+    --text:#E8F4F8;
+    --muted:#7BA7BC;
+    /* Verde menta — acento principal fresco */
+    --mint:#2DD4BF;
+    --mint-dim:#1A9E8E;
+    /* Acentos funcionales */
+    --coral:#F26B5B;      /* en vivo / urgente */
+    --sky:#60B4E0;        /* informativo / links */
+    --lime:#7ED957;       /* positivo / victorias */
+    --gold:#F0C040;       /* destacado / campeón */
+    /* alias para no romper código existente */
+    --teal:var(--mint);
+    --magenta:var(--coral);
     --amber:var(--gold);
-    --violet:var(--trionda-green);
-    --blue:var(--trionda-blue);
-    --green-live:var(--trionda-green);
-    --coral:var(--trionda-red);
+    --violet:var(--lime);
+    --blue:var(--sky);
+    --green-live:var(--lime);
+    --gold-bright:var(--gold);
+    --trionda-red:var(--coral);
+    --trionda-blue:var(--sky);
+    --trionda-green:var(--mint);
     --pitch-darker:var(--bg-deep);
     --pitch-dark:var(--bg-deep-2);
     --chalk:var(--text);
@@ -50,8 +51,8 @@
   body{
     margin:0;
     background:
-      radial-gradient(900px 500px at 88% -8%, rgba(225,67,44,0.10), transparent),
-      radial-gradient(900px 500px at 8% 105%, rgba(201,162,75,0.12), transparent),
+      radial-gradient(800px 600px at 90% -10%, rgba(45,212,191,0.07), transparent),
+      radial-gradient(700px 500px at 5% 110%, rgba(96,180,224,0.08), transparent),
       var(--bg-deep);
     color:var(--text);
     font-family:'Inter',sans-serif;
@@ -61,148 +62,197 @@
   .mono{font-family:'Roboto Mono',monospace;}
 
   header.scoreboard{
-    position:sticky; top:0; z-index:10;
-    background:var(--bg-deep);
+    position:sticky; top:0; z-index:100;
+    background:rgba(13,27,42,0.96);
+    backdrop-filter:blur(12px);
     border-bottom:1px solid var(--line);
-    box-shadow:0 1px 0 0 rgba(255,255,255,0.02);
-    padding:18px 24px;
+    padding:14px 24px;
     display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
   }
   header.scoreboard::after{
-    content:''; position:absolute; left:0; right:0; top:100%; height:3px;
-    background:linear-gradient(90deg, var(--teal), var(--magenta), var(--amber), var(--violet));
+    content:''; position:absolute; left:0; right:0; top:100%; height:2px;
+    background:linear-gradient(90deg, var(--mint), var(--sky), var(--lime));
   }
   .brand{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;}
   header.scoreboard h1{
-    margin:0; font-size:22px; font-weight:600; color:var(--text);
+    margin:0; font-size:20px; font-weight:700; color:var(--text);
   }
   header.scoreboard h1 span{
-    background:linear-gradient(90deg, var(--teal), var(--magenta));
+    background:linear-gradient(90deg, var(--mint), var(--sky));
     -webkit-background-clip:text; background-clip:text; color:transparent;
   }
   .by-tag{
     font-family:'Roboto Mono',monospace; font-size:11px; color:var(--bg-deep);
-    background:var(--amber); padding:3px 9px; border-radius:20px; font-weight:600;
+    background:var(--mint); padding:3px 9px; border-radius:20px; font-weight:700;
     letter-spacing:0.03em; white-space:nowrap;
   }
   .status-pill{
     display:flex; align-items:center; gap:8px;
     font-family:'Roboto Mono',monospace; font-size:12px; color:var(--muted);
     padding:6px 12px; border:1px solid var(--line); border-radius:20px;
+    background:rgba(22,42,63,0.6);
   }
-  .dot{width:8px; height:8px; border-radius:50%; background:var(--coral);}
-  .dot.live{background:var(--green-live); box-shadow:0 0 8px var(--green-live);}
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--muted);}
+  .dot.live{background:var(--lime); box-shadow:0 0 8px var(--lime);}
 
-  main{max-width:1180px; margin:0 auto; padding:24px; position:relative;}
+  /* ── TAB NAV ── */
+  .tab-nav{
+    display:flex; gap:4px; flex-wrap:wrap;
+    max-width:1180px; margin:0 auto;
+    padding:14px 24px 0;
+    position:sticky; top:57px; z-index:90;
+    background:rgba(13,27,42,0.96);
+    backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line);
+  }
+  .tab-btn{
+    background:transparent; color:var(--muted); border:none;
+    font-family:'Space Grotesk',sans-serif; text-transform:uppercase;
+    letter-spacing:0.04em; font-weight:600; font-size:11.5px;
+    padding:8px 14px 10px; cursor:pointer;
+    border-bottom:2px solid transparent;
+    border-radius:0; transition:color .15s, border-color .15s;
+  }
+  .tab-btn:hover{color:var(--text); filter:none;}
+  .tab-btn.active{color:var(--mint); border-bottom-color:var(--mint);}
+
+  .tab-section{display:none;}
+  .tab-section.active{display:block;}
+
+  main{max-width:1180px; margin:0 auto; padding:20px 24px; position:relative;}
 
   .panel{
     background:var(--card);
     border:1px solid var(--line);
-    border-radius:24px 6px 6px 6px;
+    border-radius:12px;
     padding:18px 20px;
-    margin-bottom:22px;
-    border-top:3px solid var(--accent, var(--teal));
+    margin-bottom:20px;
+    border-left:3px solid var(--accent, var(--mint));
   }
-  .panel h2{font-size:15px; margin:0 0 12px 0; color:var(--accent, var(--teal)); font-weight:600;}
-  .panel.accent-teal{--accent:var(--teal);}
-  .panel.accent-magenta{--accent:var(--magenta);}
-  .panel.accent-amber{--accent:var(--amber);}
-  .panel.accent-violet{--accent:var(--violet);}
-  .panel.accent-blue{--accent:var(--blue);}
+  .panel h2{font-size:14px; margin:0 0 12px 0; color:var(--accent, var(--mint)); font-weight:700;}
+  .panel.accent-teal{--accent:var(--mint);}
+  .panel.accent-magenta{--accent:var(--coral);}
+  .panel.accent-amber{--accent:var(--gold);}
+  .panel.accent-violet{--accent:var(--lime);}
+  .panel.accent-blue{--accent:var(--sky);}
 
   .config-row{display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
-  .config-row input[type=password], .config-row input[type=text]{
-    flex:1; min-width:220px;
-    background:var(--bg-deep); border:1px solid var(--line); color:var(--text);
-    padding:10px 12px; border-radius:14px 4px 14px 4px; font-family:'Roboto Mono',monospace; font-size:13px;
+  .config-row input[type=password],.config-row input[type=text],.config-row input[type=number],.config-row select{
+    flex:1; min-width:180px;
+    background:var(--bg-deep-2); border:1px solid var(--line); color:var(--text);
+    padding:9px 12px; border-radius:8px; font-family:'Roboto Mono',monospace; font-size:13px;
   }
   button{
-    background:var(--gold); color:var(--bg-deep); border:none;
-    font-family:'Space Grotesk',sans-serif; text-transform:uppercase; letter-spacing:0.03em;
-    font-weight:600; font-size:13px;
-    padding:11px 18px; border-radius:14px 4px 14px 4px; cursor:pointer;
+    background:var(--mint); color:var(--bg-deep); border:none;
+    font-family:'Space Grotesk',sans-serif; text-transform:uppercase; letter-spacing:0.04em;
+    font-weight:700; font-size:12px;
+    padding:10px 16px; border-radius:8px; cursor:pointer; transition:filter .15s;
   }
-  button:hover{filter:brightness(1.1);}
+  button:hover{filter:brightness(1.12);}
   button.ghost{
-    background:transparent; color:var(--text); border:1px solid var(--line);
+    background:transparent; color:var(--text); border:1px solid var(--line); border-radius:8px;
   }
+  button.ghost:hover{background:var(--card-2); filter:none;}
+  button.danger{background:var(--coral); color:#fff;}
   .config-note{font-size:12.5px; color:var(--muted); margin-top:10px;}
-  .config-note a{color:var(--amber);}
-  .msg{font-size:13px; margin-top:10px; padding:10px 12px; border-radius:6px; display:none;}
-  .msg.error{display:block; background:rgba(225,67,44,0.16); border:1px solid var(--coral); color:#ffe1da;}
-  .msg.ok{display:block; background:rgba(60,148,104,0.16); border:1px solid var(--green-live); color:#d8f3e6;}
+  .config-note a{color:var(--mint);}
+  .msg{font-size:13px; margin-top:10px; padding:10px 12px; border-radius:8px; display:none;}
+  .msg.error{display:block; background:rgba(242,107,91,0.14); border:1px solid var(--coral); color:#ffd6d0;}
+  .msg.ok{display:block; background:rgba(45,212,191,0.12); border:1px solid var(--mint); color:#ccf7f1;}
 
   .groups-grid{
     display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:14px; margin-bottom:24px;
   }
   .group-card{
-    background:var(--card-2); border:1px solid var(--line); border-radius:18px 6px 6px 6px; padding:14px 16px;
+    background:var(--card-2); border:1px solid var(--line); border-radius:10px; padding:14px 16px;
   }
   .group-card .eyebrow{
-    font-size:12px; color:var(--teal); font-weight:600; margin-bottom:8px;
+    font-size:11.5px; color:var(--mint); font-weight:700; margin-bottom:8px; letter-spacing:0.05em;
   }
   table{width:100%; border-collapse:collapse; font-size:12.5px;}
   th{
     text-align:left; color:var(--muted); font-weight:500; font-size:10.5px;
     text-transform:uppercase; letter-spacing:0.04em; padding:4px 4px; border-bottom:1px solid var(--line);
   }
-  th.num, td.num{text-align:center;}
-  td{padding:6px 4px; border-bottom:1px solid rgba(245,246,255,0.06); font-family:'Roboto Mono',monospace;}
+  th.num,td.num{text-align:center;}
+  td{padding:6px 4px; border-bottom:1px solid rgba(200,230,255,0.05); font-family:'Roboto Mono',monospace;}
   td.team{font-family:'Inter',sans-serif; font-weight:500;}
   tr.qualified td{position:relative;}
-  tr.qualified td.team{border-left:3px solid var(--gold); padding-left:8px;}
-  tr.third td.team{border-left:3px solid var(--trionda-blue); padding-left:8px;}
+  tr.qualified td.team{border-left:3px solid var(--mint); padding-left:8px;}
+  tr.third td.team{border-left:3px solid var(--sky); padding-left:8px;}
 
   .thirds-table tr.cut-line td{padding-top:0; padding-bottom:0; height:0; border:none;}
-  .cut-marker{
-    display:flex; align-items:center; gap:10px; margin:8px 0;
-  }
-  .cut-marker .line{flex:1; height:0; border-top:2px dashed var(--magenta);}
+  .cut-marker{display:flex; align-items:center; gap:10px; margin:8px 0;}
+  .cut-marker .line{flex:1; height:0; border-top:2px dashed var(--coral);}
   .cut-marker .tag{
-    font-family:'Space Grotesk',sans-serif; font-size:10.5px; letter-spacing:0.05em; color:var(--bg-deep);
-    background:var(--magenta); padding:3px 8px; border-radius:3px; white-space:nowrap;
+    font-family:'Space Grotesk',sans-serif; font-size:10.5px; letter-spacing:0.05em; color:#fff;
+    background:var(--coral); padding:3px 8px; border-radius:4px; white-space:nowrap;
   }
   .thirds-list{list-style:none; margin:0; padding:0;}
   .thirds-list li{
     display:grid; grid-template-columns:24px 1fr 70px 60px; gap:8px; align-items:center;
-    padding:8px 4px; border-bottom:1px solid rgba(245,246,255,0.06); font-size:13px;
+    padding:8px 4px; border-bottom:1px solid rgba(200,230,255,0.05); font-size:13px;
   }
-  .thirds-list li .rk{font-family:'Roboto Mono',monospace; color:var(--magenta);}
+  .thirds-list li .rk{font-family:'Roboto Mono',monospace; color:var(--mint);}
   .thirds-list li .grp{font-family:'Roboto Mono',monospace; color:var(--muted); font-size:11px;}
   .thirds-list li .pts{font-family:'Roboto Mono',monospace; text-align:right;}
   .thirds-list li.out{opacity:0.4;}
 
   .bracket-list{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:12px;}
   .match-card{
-    background:var(--card-2); border:1px solid var(--line); border-left:3px solid var(--amber); border-radius:16px 5px 5px 5px; padding:12px 14px;
+    background:var(--card-2); border:1px solid var(--line);
+    border-left:3px solid var(--gold); border-radius:10px; padding:12px 14px;
   }
   .match-card .vs{display:flex; flex-direction:column; gap:2px; font-weight:600; font-size:14.5px;}
   .match-card .vs .side{display:flex; justify-content:space-between; align-items:baseline; gap:8px;}
   .match-card .vs .sub{font-family:'Roboto Mono',monospace; font-weight:400; font-size:10.5px; color:var(--muted); text-transform:none; letter-spacing:0;}
-  .match-card .vs .versus{font-size:10px; color:var(--magenta); text-align:center; margin:2px 0; letter-spacing:0.1em;}
+  .match-card .vs .versus{font-size:10px; color:var(--coral); text-align:center; margin:2px 0; letter-spacing:0.1em;}
   .match-card .meta{margin-top:8px; font-size:11.5px; color:var(--muted); font-family:'Roboto Mono',monospace;}
 
-  .live-ticker{
-    display:flex; flex-direction:column; gap:8px; margin-bottom:18px;
-  }
+  .live-ticker{display:flex; flex-direction:column; gap:8px; margin-bottom:18px;}
   .live-ticker-item{
     display:flex; align-items:center; gap:10px;
-    background:linear-gradient(90deg, rgba(225,67,44,0.16), rgba(201,162,75,0.10));
-    border:1px solid var(--magenta); border-radius:16px 5px 5px 5px; padding:8px 14px;
+    background:rgba(242,107,91,0.10);
+    border:1px solid rgba(242,107,91,0.35); border-radius:8px; padding:8px 14px;
     font-family:'Roboto Mono',monospace; font-size:12.5px;
   }
   .live-ticker-item .pulse{
     width:8px; height:8px; border-radius:50%; background:var(--coral);
-    box-shadow:0 0 0 0 rgba(225,67,44,0.6); animation:pulse 1.5s infinite;
+    box-shadow:0 0 0 0 rgba(242,107,91,0.6); animation:pulse 1.5s infinite;
     flex-shrink:0;
   }
   @keyframes pulse{
-    0%{box-shadow:0 0 0 0 rgba(225,67,44,0.6);}
-    70%{box-shadow:0 0 0 8px rgba(225,67,44,0);}
-    100%{box-shadow:0 0 0 0 rgba(225,67,44,0);}
+    0%{box-shadow:0 0 0 0 rgba(242,107,91,0.6);}
+    70%{box-shadow:0 0 0 8px rgba(242,107,91,0);}
+    100%{box-shadow:0 0 0 0 rgba(242,107,91,0);}
   }
   tr.live-row td.team{color:var(--coral); font-weight:700;}
   tr.live-row td.team::after{content:' ●'; color:var(--coral); font-size:9px; vertical-align:super;}
+
+  /* ── ODDS / ADMIN ── */
+  .odds-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px;}
+  .odds-card{
+    background:var(--card-2); border:1px solid var(--line); border-radius:10px; padding:14px 16px;
+  }
+  .odds-card .match-title{font-weight:600; font-size:13.5px; margin-bottom:10px; color:var(--text);}
+  .odds-card .odds-row{
+    display:flex; gap:8px; align-items:center; margin-bottom:6px;
+  }
+  .odds-card .odds-label{font-size:12px; color:var(--muted); width:80px; flex-shrink:0;}
+  .odds-card .odds-val{
+    font-family:'Roboto Mono',monospace; font-size:14px; font-weight:600;
+    color:var(--gold); background:rgba(240,192,64,0.10);
+    padding:3px 10px; border-radius:6px; min-width:54px; text-align:center;
+  }
+  .odds-card .odds-prob{font-size:11px; color:var(--muted); margin-left:4px;}
+  .admin-form{display:flex; flex-direction:column; gap:10px;}
+  .admin-form textarea{
+    background:var(--bg-deep-2); border:1px solid var(--line); color:var(--text);
+    padding:10px 12px; border-radius:8px; font-family:'Roboto Mono',monospace; font-size:12px;
+    resize:vertical; min-height:120px; width:100%;
+  }
+  .admin-hint{font-size:11.5px; color:var(--muted); line-height:1.6;}
+  .admin-hint code{color:var(--mint); background:var(--bg-deep); padding:1px 5px; border-radius:3px;}
 
   .empty-state{
     text-align:center; padding:30px 16px; color:var(--muted); font-size:13.5px;
@@ -212,11 +262,13 @@
   footer{
     max-width:1180px; margin:0 auto; padding:10px 24px 40px; color:var(--muted); font-size:11.5px;
   }
-  footer a{color:var(--amber);}
+  footer a{color:var(--mint);}
 
-  @media (max-width:560px){
-    header.scoreboard{padding:14px 16px;}
-    main{padding:16px;}
+  @media (max-width:600px){
+    header.scoreboard{padding:12px 16px;}
+    .tab-nav{padding:10px 16px 0; top:53px;}
+    main{padding:14px 16px;}
+    .tab-btn{font-size:10.5px; padding:7px 10px 9px;}
   }
 </style>
 </head>
@@ -230,81 +282,145 @@
   <div class="status-pill"><span class="dot" id="statusDot"></span><span id="statusText">datos de muestra · 19 jun 2026</span></div>
 </header>
 
+<nav class="tab-nav" id="tabNav">
+  <button class="tab-btn active" data-tab="grupos">Grupos</button>
+  <button class="tab-btn" data-tab="calendario">Calendario</button>
+  <button class="tab-btn" data-tab="predicciones">IA Predicciones</button>
+  <button class="tab-btn" data-tab="momios">Momios</button>
+  <button class="tab-btn" data-tab="bracket">Bracket</button>
+  <button class="tab-btn" data-tab="admin">Admin</button>
+</nav>
+
 <main>
 
-  <section class="panel accent-teal">
-    <h2>Datos en vivo</h2>
-    <div class="config-row">
-      <button id="refreshBtn">Actualizar ahora</button>
-    </div>
-    <div class="config-note">
-      Los datos vienen de <a href="https://www.football-data.org" target="_blank" rel="noopener">football-data.org</a>, y se actualizan solos cada 60 segundos — si hay un partido en curso, su marcador ya mueve la posición de los equipos (y el bracket) en automático.
-    </div>
-    <div class="msg error" id="errorMsg"></div>
-    <div class="msg ok" id="okMsg"></div>
-  </section>
+  <!-- ── GRUPOS ── -->
+  <div class="tab-section active" id="tab-grupos">
 
-  <section class="panel accent-violet">
-    <h2>Calendario del día</h2>
-    <div class="config-row" style="margin-bottom:14px;">
-      <button class="ghost" id="calPrevBtn">← Anterior</button>
-      <button id="calTodayBtn">Hoy</button>
-      <button class="ghost" id="calNextBtn">Siguiente →</button>
-      <span id="calDateLabel" style="font-family:'Roboto Mono',monospace; font-size:13px; color:var(--muted); margin-left:auto;"></span>
-    </div>
-    <div id="calendarArea"></div>
-  </section>
+    <section class="panel accent-teal">
+      <h2>Datos en vivo</h2>
+      <div class="config-row">
+        <button id="refreshBtn">Actualizar ahora</button>
+      </div>
+      <div class="config-note">
+        Los datos vienen de <a href="https://www.football-data.org" target="_blank" rel="noopener">football-data.org</a>, y se actualizan solos cada 60 segundos.
+      </div>
+      <div class="msg error" id="errorMsg"></div>
+      <div class="msg ok" id="okMsg"></div>
+    </section>
 
-  <section class="panel accent-teal">
-    <h2>Posiciones por grupo</h2>
-    <div class="live-ticker" id="liveTicker"></div>
-    <div class="groups-grid" id="groupsGrid"></div>
-  </section>
+    <section class="panel accent-teal">
+      <h2>Posiciones por grupo</h2>
+      <div class="live-ticker" id="liveTicker"></div>
+      <div class="groups-grid" id="groupsGrid"></div>
+    </section>
 
-  <section class="panel accent-magenta">
-    <h2>Mejores terceros lugares</h2>
-    <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Avanzan los 8 mejores terceros de los 12 grupos. Criterio: puntos, luego diferencia de gol y goles a favor (con datos en vivo).</p>
-    <div class="cut-marker" id="cutMarkerTop" style="display:none;"></div>
-    <ul class="thirds-list" id="thirdsList"></ul>
-  </section>
+    <section class="panel accent-magenta">
+      <h2>Mejores terceros lugares</h2>
+      <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Avanzan los 8 mejores terceros de los 12 grupos. Criterio: puntos, luego diferencia de gol y goles a favor (con datos en vivo).</p>
+      <div class="cut-marker" id="cutMarkerTop" style="display:none;"></div>
+      <ul class="thirds-list" id="thirdsList"></ul>
+    </section>
 
-  <section class="panel accent-amber">
-    <h2>Goleadores</h2>
-    <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Top 5 del torneo, directo de football-data.org — se actualiza solo cada 60 segundos, junto con todo lo demás.</p>
-    <ul class="thirds-list" id="scorersList"></ul>
-  </section>
+    <section class="panel accent-violet">
+      <h2>Goleadores</h2>
+      <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Top 5 del torneo — se actualiza cada 60 segundos.</p>
+      <ul class="thirds-list" id="scorersList"></ul>
+    </section>
 
-  <section class="panel accent-blue">
-    <h2>Predicciones de la IA</h2>
-    <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Una vez al día, antes de que arranquen los partidos, con estadísticas reales + libertad para lo inesperado. Se evalúan solas conforme llegan los resultados.</p>
-    <div id="predictionsAccuracy" style="display:none;"></div>
-    <ul class="thirds-list" id="predictionsList"></ul>
-  </section>
+  </div>
 
-  <section class="panel accent-amber" id="projectionPanel">
-    <h2>Bracket completo: dieciseisavos → final</h2>
-    <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">
-      Dieciseisavos es <strong style="color:var(--chalk);">proyección con la tabla de posiciones de hoy</strong>
-      (incluido el rival exacto contra terceros, según el Anexo C oficial de la FIFA). De octavos en adelante,
-      cada partido se resuelve solo: mientras no haya ganador real se muestra "Ganador Partido N"; en cuanto
-      football-data.org confirme el resultado, aparece el equipo y el marcador, y el cruce de la siguiente ronda
-      se arma solo.
-    </p>
-    <div class="bracket-list" id="projectionArea"></div>
-  </section>
+  <!-- ── CALENDARIO ── -->
+  <div class="tab-section" id="tab-calendario">
+    <section class="panel accent-blue">
+      <h2>Calendario del día</h2>
+      <div class="config-row" style="margin-bottom:14px;">
+        <button class="ghost" id="calPrevBtn">← Anterior</button>
+        <button id="calTodayBtn">Hoy</button>
+        <button class="ghost" id="calNextBtn">Siguiente →</button>
+        <span id="calDateLabel" style="font-family:'Roboto Mono',monospace; font-size:13px; color:var(--muted); margin-left:auto;"></span>
+      </div>
+      <div id="calendarArea"></div>
+    </section>
+  </div>
 
-  <section class="panel accent-violet">
-    <h2>Cruces oficiales confirmados</h2>
-    <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Esto viene directo de football-data.org y se va llenando solo: primero dieciseisavos (después del 27 de junio), y conforme avance el torneo, octavos, cuartos, semifinales y la final.</p>
-    <div id="bracketArea"></div>
-  </section>
+  <!-- ── PREDICCIONES ── -->
+  <div class="tab-section" id="tab-predicciones">
+    <section class="panel accent-blue">
+      <h2>Predicciones de la IA</h2>
+      <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Una vez al día, antes de que arranquen los partidos, con estadísticas reales + libertad para lo inesperado. Se evalúan solas conforme llegan los resultados.</p>
+      <div id="predictionsAccuracy" style="display:none;"></div>
+      <ul class="thirds-list" id="predictionsList"></ul>
+    </section>
+  </div>
+
+  <!-- ── MOMIOS ── -->
+  <div class="tab-section" id="tab-momios">
+    <section class="panel accent-amber">
+      <h2>Momios y posibles cruces</h2>
+      <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Momios actualizados para cada partido. Los porcentajes implícitos se calculan automáticamente.</p>
+      <div class="odds-grid" id="oddsGrid">
+        <div class="empty-state"><strong>Sin momios cargados aún.</strong><br>Ve a la pestaña Admin para agregarlos.</div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ── BRACKET ── -->
+  <div class="tab-section" id="tab-bracket">
+    <section class="panel accent-amber" id="projectionPanel">
+      <h2>Bracket completo: dieciseisavos → final</h2>
+      <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">
+        Dieciseisavos es <strong style="color:var(--chalk);">proyección con la tabla de posiciones de hoy</strong>
+        (incluido el rival exacto contra terceros, según el Anexo C oficial de la FIFA). De octavos en adelante,
+        cada partido se resuelve solo: mientras no haya ganador real se muestra "Ganador Partido N"; en cuanto
+        football-data.org confirme el resultado, aparece el equipo y el marcador, y el cruce de la siguiente ronda
+        se arma solo.
+      </p>
+      <div class="bracket-list" id="projectionArea"></div>
+    </section>
+
+    <section class="panel accent-teal">
+      <h2>Cruces oficiales confirmados</h2>
+      <div id="bracketArea"></div>
+    </section>
+  </div>
+
+  <!-- ── ADMIN ── -->
+  <div class="tab-section" id="tab-admin">
+    <section class="panel accent-amber">
+      <h2>Admin — momios</h2>
+
+      <div id="adminLock">
+        <p style="font-size:13px;color:var(--muted);margin-top:0;">Área restringida. Ingresa la contraseña para continuar.</p>
+        <div class="config-row">
+          <input type="password" id="adminPwInput" placeholder="Contraseña" style="max-width:260px;">
+          <button id="adminPwBtn">Entrar</button>
+        </div>
+        <div class="msg" id="adminPwMsg"></div>
+      </div>
+
+      <div id="adminContent" style="display:none;">
+        <p style="font-size:12.5px;color:var(--muted);margin-top:0;">Pega los momios de los partidos aquí. Un partido por línea.</p>
+        <div class="admin-form">
+          <div class="admin-hint">
+            Formato por línea:<br>
+            <code>España vs Arabia Saudita | 1.60 | 3.80 | 5.50</code><br>
+            (Nombre local | momio local | momio empate | momio visitante)
+          </div>
+          <textarea id="oddsInput" placeholder="España vs Arabia Saudita | 1.60 | 3.80 | 5.50&#10;Argentina vs Austria | 1.25 | 5.50 | 9.00"></textarea>
+          <div class="config-row">
+            <button id="saveOddsBtn">Guardar momios</button>
+            <button class="ghost danger" id="clearOddsBtn">Borrar todo</button>
+          </div>
+          <div class="msg" id="oddsMsg"></div>
+        </div>
+      </div>
+    </section>
+  </div>
 
 </main>
 
 <footer>
-  Fuente de datos en vivo: <a href="https://www.football-data.org" target="_blank" rel="noopener">football-data.org</a>.
-  Los cruces de dieciseisavos dependen de los 8 mejores terceros, definidos según las 495 combinaciones oficiales de la FIFA;
-  esta app muestra los cruces tal como los publica el proveedor de datos en cuanto estén confirmados.
+  Datos: <a href="https://www.football-data.org" target="_blank" rel="noopener">football-data.org</a> · Predicciones: Claude (Anthropic)
 </footer>
 
 <script>
@@ -923,7 +1039,10 @@ const TEAM_ES_BY_NAME = {
 };
 function esName(team){
   if(!team) return 'Por definir';
-  if(team.id && TEAM_ES_BY_ID[team.id]) return TEAM_ES_BY_ID[team.id];
+  // Coerce a número: los IDs del feed son números, pero al pasar por
+  // JSON/Blobs pueden volver como strings — sin esto el lookup falla.
+  const numId = team.id != null ? Number(team.id) : null;
+  if(numId && TEAM_ES_BY_ID[numId]) return TEAM_ES_BY_ID[numId];
   const key = (team.name || '').trim().toLowerCase();
   return TEAM_ES_BY_NAME[key] || team.name || 'Por definir';
 }
@@ -1143,7 +1262,10 @@ async function fetchPredictions(){
 }
 
 function findRealMatchById(matchId){
-  return (state.allMatches || []).find(m => m.id === matchId);
+  // Comparación flexible por tipo: football-data.org regresa IDs como
+  // números, pero al pasar por JSON/Blobs pueden volver como strings.
+  // eslint-disable-next-line eqeqeq
+  return (state.allMatches || []).find(m => m.id == matchId);
 }
 
 function renderPredictions(){
@@ -1151,8 +1273,17 @@ function renderPredictions(){
   const accuracyEl = document.getElementById('predictionsAccuracy');
   list.innerHTML = '';
 
+  // Mismo corte de "día de fútbol" que usa predict.js (7am UTC):
+  // mostramos solo las predicciones del día activo, no acumuladas de días previos.
+  const now = new Date();
+  const BOUNDARY_HOUR_UTC = 7;
+  const todayBoundary = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), BOUNDARY_HOUR_UTC, 0, 0));
+  const currentDayStart = now.getTime() >= todayBoundary.getTime() ? todayBoundary : new Date(todayBoundary.getTime() - 86400000);
+  const currentDateKey = currentDayStart.toISOString().slice(0, 10);
+
   const allPreds = [];
   for(const day of (state.predictions || [])){
+    if(day.date !== currentDateKey) continue; // solo el día activo
     for(const p of (day.predictions || [])){
       allPreds.push({ ...p, date: day.date });
     }
@@ -1461,8 +1592,16 @@ function computeProjectedGroups(){
     const away = byId[m.awayTeam?.id];
     if(!home || !away) return;
 
-    const hg = m.score?.fullTime?.home;
-    const ag = m.score?.fullTime?.away;
+    // football-data.org solo llena score.fullTime cuando el partido termina.
+    // Mientras está en curso, el marcador vive en score.currentPeriod (o en
+    // score.halfTime durante el descanso). Caemos a esas fuentes para que
+    // los partidos en vivo también cuenten y muestren el marcador correcto.
+    const hg = m.score?.fullTime?.home
+      ?? m.score?.currentPeriod?.home
+      ?? m.score?.halfTime?.home;
+    const ag = m.score?.fullTime?.away
+      ?? m.score?.currentPeriod?.away
+      ?? m.score?.halfTime?.away;
     const rawIsFinished = m.status === 'FINISHED';
     const rawIsLive = m.status === 'IN_PLAY' || m.status === 'PAUSED';
     if(!rawIsFinished && !rawIsLive) return; // SCHEDULED, POSTPONED, etc.: no ha arrancado, no aporta nada
@@ -1571,7 +1710,9 @@ function renderCalendar(){
     if(isFinished){
       scoreOrTime = `<span class="mono" style="color:var(--green-live);">${mt.score?.fullTime?.home ?? '-'}-${mt.score?.fullTime?.away ?? '-'} FINAL</span>`;
     } else if(isLive){
-      scoreOrTime = `<span class="mono" style="color:var(--coral);">● ${mt.score?.fullTime?.home ?? 0}-${mt.score?.fullTime?.away ?? 0} EN VIVO</span>`;
+      const lh = mt.score?.fullTime?.home ?? mt.score?.currentPeriod?.home ?? mt.score?.halfTime?.home ?? 0;
+      const la = mt.score?.fullTime?.away ?? mt.score?.currentPeriod?.away ?? mt.score?.halfTime?.away ?? 0;
+      scoreOrTime = `<span class="mono" style="color:var(--coral);">● ${lh}-${la} EN VIVO</span>`;
     }
     return `
       <div class="match-card">
@@ -1629,6 +1770,134 @@ if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   });
+}
+
+// ── TABS ──
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + target).classList.add('active');
+    // Al cambiar a predicciones, re-renderiza por si cambiaron los datos en vivo
+    if(target === 'predicciones') renderPredictions();
+    if(target === 'momios') renderOdds();
+  });
+});
+
+// ── ADMIN PASSWORD ──
+const ADMIN_PW = 'Hasl3tEngin33ring';
+
+function unlockAdmin(){
+  document.getElementById('adminLock').style.display = 'none';
+  document.getElementById('adminContent').style.display = 'block';
+  initOdds();
+}
+
+// Auto-unlock if already authenticated this session
+if(sessionStorage.getItem('mundial2026_admin') === '1') unlockAdmin();
+
+document.getElementById('adminPwBtn').addEventListener('click', () => {
+  const val = document.getElementById('adminPwInput').value;
+  const msg = document.getElementById('adminPwMsg');
+  if(val === ADMIN_PW){
+    sessionStorage.setItem('mundial2026_admin', '1');
+    unlockAdmin();
+  } else {
+    msg.className = 'msg error'; msg.style.display = 'block';
+    msg.textContent = 'Contraseña incorrecta.';
+    document.getElementById('adminPwInput').value = '';
+  }
+});
+
+document.getElementById('adminPwInput').addEventListener('keydown', e => {
+  if(e.key === 'Enter') document.getElementById('adminPwBtn').click();
+});
+
+// ── MOMIOS ──
+// Los momios se guardan en localStorage como array de objetos.
+// Formato: [{matchLabel, home, draw, away}]
+// El admin los escribe en texto plano y los parseamos aquí.
+
+function oddsToProb(odds){ return odds > 0 ? Math.round(100 / odds) : 0; }
+
+function parseOddsText(text){
+  const lines = text.trim().split('\n').filter(l => l.trim());
+  const result = [];
+  for(const line of lines){
+    const parts = line.split('|').map(p => p.trim());
+    if(parts.length < 4) continue;
+    const [matchLabel, h, d, a] = parts;
+    const home = parseFloat(h), draw = parseFloat(d), away = parseFloat(a);
+    if(isNaN(home) || isNaN(draw) || isNaN(away)) continue;
+    result.push({ matchLabel, home, draw, away });
+  }
+  return result;
+}
+
+function renderOdds(){
+  const grid = document.getElementById('oddsGrid');
+  const raw = localStorage.getItem('mundial2026_odds');
+  const odds = raw ? JSON.parse(raw) : [];
+  if(odds.length === 0){
+    grid.innerHTML = '<div class="empty-state"><strong>Sin momios cargados aún.</strong><br>Ve a la pestaña Admin para agregarlos.</div>';
+    return;
+  }
+  grid.innerHTML = odds.map(o => {
+    const ph = oddsToProb(o.home), pd = oddsToProb(o.draw), pa = oddsToProb(o.away);
+    const [homeTeam, awayTeam] = o.matchLabel.split(/\s+vs\s+/i);
+    return `<div class="odds-card">
+      <div class="match-title">${o.matchLabel}</div>
+      <div class="odds-row">
+        <span class="odds-label">${homeTeam || 'Local'}</span>
+        <span class="odds-val">${o.home.toFixed(2)}</span>
+        <span class="odds-prob">${ph}%</span>
+      </div>
+      <div class="odds-row">
+        <span class="odds-label">Empate</span>
+        <span class="odds-val">${o.draw.toFixed(2)}</span>
+        <span class="odds-prob">${pd}%</span>
+      </div>
+      <div class="odds-row">
+        <span class="odds-label">${awayTeam || 'Visitante'}</span>
+        <span class="odds-val">${o.away.toFixed(2)}</span>
+        <span class="odds-prob">${pa}%</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('saveOddsBtn').addEventListener('click', () => {
+  const text = document.getElementById('oddsInput').value;
+  const parsed = parseOddsText(text);
+  const msg = document.getElementById('oddsMsg');
+  if(parsed.length === 0){
+    msg.className = 'msg error'; msg.style.display = 'block';
+    msg.textContent = 'No se pudo leer ningún partido. Revisa el formato: Equipo A vs Equipo B | 1.60 | 3.80 | 5.50';
+    return;
+  }
+  localStorage.setItem('mundial2026_odds', JSON.stringify(parsed));
+  msg.className = 'msg ok'; msg.style.display = 'block';
+  msg.textContent = `${parsed.length} partido(s) guardado(s). Ve a la pestaña Momios para verlos.`;
+  renderOdds();
+});
+
+document.getElementById('clearOddsBtn').addEventListener('click', () => {
+  localStorage.removeItem('mundial2026_odds');
+  document.getElementById('oddsInput').value = '';
+  const msg = document.getElementById('oddsMsg');
+  msg.className = 'msg ok'; msg.style.display = 'block';
+  msg.textContent = 'Momios borrados.';
+  renderOdds();
+});
+
+function initOdds(){
+  const raw = localStorage.getItem('mundial2026_odds');
+  if(!raw) return;
+  const odds = JSON.parse(raw);
+  const textarea = document.getElementById('oddsInput');
+  textarea.value = odds.map(o => `${o.matchLabel} | ${o.home} | ${o.draw} | ${o.away}`).join('\n');
 }
 </script>
 </body>
