@@ -397,7 +397,10 @@
       </div>
 
       <div id="adminContent" style="display:none;">
-        <p style="font-size:12.5px;color:var(--muted);margin-top:0;">Agrega los momios de los partidos pendientes. Se guardan en la nube — todos los visitantes los ven.</p>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <p style="font-size:12.5px;color:var(--muted);margin:0;">Agrega los momios de los partidos pendientes. Se guardan en la nube — todos los visitantes los ven.</p>
+          <button class="ghost" style="font-size:11px;padding:5px 12px;" id="adminLogoutBtn">Cerrar sesión</button>
+        </div>
 
         <!-- Agregar partido -->
         <div class="admin-form" style="margin-bottom:20px;">
@@ -1800,6 +1803,10 @@ const ADMIN_PW = 'Hasl3tEngin33ring';
 function unlockAdmin(){
   document.getElementById('adminLock').style.display = 'none';
   document.getElementById('adminContent').style.display = 'block';
+  // Sincroniza localOdds con lo que ya está en Blobs (si fetchOdds ya corrió)
+  if(state.odds && state.odds.length > 0 && localOdds.length === 0){
+    localOdds = [...state.odds];
+  }
   renderAdminOddsList();
 }
 
@@ -1821,6 +1828,15 @@ document.getElementById('adminPwBtn').addEventListener('click', () => {
 
 document.getElementById('adminPwInput').addEventListener('keydown', e => {
   if(e.key === 'Enter') document.getElementById('adminPwBtn').click();
+});
+
+document.getElementById('adminLogoutBtn').addEventListener('click', () => {
+  sessionStorage.removeItem('mundial2026_admin');
+  localOdds = [];
+  document.getElementById('adminContent').style.display = 'none';
+  document.getElementById('adminLock').style.display = 'block';
+  document.getElementById('adminPwInput').value = '';
+  document.getElementById('adminPwMsg').style.display = 'none';
 });
 
 // ── MOMIOS ──
@@ -1932,8 +1948,11 @@ async function fetchOdds(){
     if(!res.ok) return;
     const data = await res.json();
     state.odds = data.odds || [];
-    if(sessionStorage.getItem('mundial2026_admin') === '1'){
-      localOdds = [...state.odds];
+    // Siempre sincroniza la lista local del admin con lo que hay en Blobs,
+    // no solo cuando acaba de autenticarse — así si entra al tab Admin
+    // después de que fetchOdds ya corrió, ve los momios correctos.
+    localOdds = [...state.odds];
+    if(document.getElementById('adminContent')?.style.display !== 'none'){
       renderAdminOddsList();
     }
     renderScenarios();
