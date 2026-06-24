@@ -1323,7 +1323,7 @@ function renderPredictions(){
       else if(predDir === realDir){ badge = '👍 le atinó al resultado'; direction++; }
       else { badge = '❌ falló'; wrong++; }
       resultNote = ` · real ${rh}-${ra}`;
-    } else if(real && (real.status === 'IN_PLAY' || real.status === 'PAUSED')){
+    } else if(real && (real.status === 'IN_PLAY' || real.status === 'PAUSED' || real.status === 'LIVE')){
       badge = '🔴 en vivo';
       resultNote = ` · va ${real.score?.fullTime?.home ?? 0}-${real.score?.fullTime?.away ?? 0}`;
     } else {
@@ -1517,7 +1517,7 @@ function renderFullBracket(){
       const m = FULL_BRACKET[id];
       const r = resolveMatch(id, cache);
       const isFinished = r.apiMatch?.status === 'FINISHED';
-      const isLive = r.apiMatch?.status === 'IN_PLAY' || r.apiMatch?.status === 'PAUSED';
+      const isLive = r.apiMatch?.status === 'IN_PLAY' || r.apiMatch?.status === 'PAUSED' || r.apiMatch?.status === 'LIVE';
       let statusTag = '';
       if(isFinished){
         const hg = r.apiMatch.score?.fullTime?.home ?? '';
@@ -1610,7 +1610,7 @@ function computeProjectedGroups(){
       ?? m.score?.currentPeriod?.away
       ?? m.score?.halfTime?.away;
     const rawIsFinished = m.status === 'FINISHED';
-    const rawIsLive = m.status === 'IN_PLAY' || m.status === 'PAUSED';
+    const rawIsLive = m.status === 'IN_PLAY' || m.status === 'PAUSED' || m.status === 'LIVE';
     if(!rawIsFinished && !rawIsLive) return; // SCHEDULED, POSTPONED, etc.: no ha arrancado, no aporta nada
     if(hg == null || ag == null) return;
 
@@ -1678,7 +1678,7 @@ function ymdLocal(date){
 let calendarDate = ymdLocal(new Date());
 
 const MATCH_STATUS_ES = {
-  SCHEDULED:'Programado', TIMED:'Programado', IN_PLAY:'En vivo', PAUSED:'Medio tiempo',
+  SCHEDULED:'Programado', TIMED:'Programado', IN_PLAY:'En vivo', PAUSED:'Medio tiempo', LIVE:'En vivo',
   FINISHED:'Finalizado', POSTPONED:'Pospuesto', SUSPENDED:'Suspendido', CANCELLED:'Cancelado'
 };
 
@@ -1707,7 +1707,7 @@ function renderCalendar(){
   }
 
   area.innerHTML = `<div class="bracket-list">${dayMatches.map(mt => {
-    const isLive = mt.status === 'IN_PLAY' || mt.status === 'PAUSED';
+    const isLive = mt.status === 'IN_PLAY' || mt.status === 'PAUSED' || mt.status === 'LIVE';
     const isFinished = mt.status === 'FINISHED';
     const time = new Date(mt.utcDate).toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
     const home = mt.homeTeam?.name ? esName(mt.homeTeam) : 'Por definir';
