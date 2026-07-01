@@ -229,7 +229,25 @@
   tr.live-row td.team{color:var(--coral); font-weight:700;}
   tr.live-row td.team::after{content:' ●'; color:var(--coral); font-size:9px; vertical-align:super;}
 
-  /* ── ODDS / ADMIN ── */
+  /* ── BRACKET VISUAL ── */
+  .bv-wrap{display:flex;gap:0;align-items:center;min-width:900px;}
+  .bv-round{display:flex;flex-direction:column;justify-content:space-around;flex:1;gap:4px;position:relative;}
+  .bv-round-label{font-family:'Space Grotesk',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);text-align:center;padding:6px 0 10px;}
+  .bv-match{background:var(--card-2);border:1px solid var(--line);border-radius:8px;overflow:hidden;position:relative;min-width:130px;}
+  .bv-match.confirmed{border-color:var(--gold);box-shadow:0 0 8px rgba(240,192,64,0.15);}
+  .bv-match.live{border-color:var(--coral);animation:bv-pulse 2s infinite;}
+  @keyframes bv-pulse{0%,100%{box-shadow:0 0 4px rgba(242,107,91,0.4);}50%{box-shadow:0 0 12px rgba(242,107,91,0.7);}}
+  .bv-team{display:flex;align-items:center;justify-content:space-between;padding:6px 8px;font-size:12px;font-weight:500;gap:4px;}
+  .bv-team:first-child{border-bottom:1px solid var(--line);}
+  .bv-team.winner{color:var(--gold);font-weight:700;}
+  .bv-team.tbd{color:var(--muted);font-style:italic;}
+  .bv-score{font-family:'Roboto Mono',monospace;font-size:13px;font-weight:700;color:var(--text);min-width:18px;text-align:right;}
+  .bv-score.winner{color:var(--gold);}
+  .bv-connector{width:20px;display:flex;flex-direction:column;justify-content:space-around;flex-shrink:0;}
+
+  .panel.accent-gold{--accent:var(--gold);}
+
+
   .odds-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:12px;}
   .odds-card{
     background:var(--card-2); border:1px solid var(--line); border-radius:10px; padding:14px 16px;
@@ -286,9 +304,7 @@
   <button class="tab-btn active" data-tab="grupos">Grupos</button>
   <button class="tab-btn" data-tab="calendario">Calendario</button>
   <button class="tab-btn" data-tab="predicciones">IA Predicciones</button>
-  <button class="tab-btn" data-tab="bracket">Si hoy terminara</button>
-  <button class="tab-btn" data-tab="escenarios">Escenarios</button>
-  <button class="tab-btn" data-tab="admin">Admin</button>
+  <button class="tab-btn" data-tab="bracket-visual">Bracket</button>
 </nav>
 
 <main>
@@ -356,7 +372,7 @@
   <!-- ── SI HOY TERMINARA ── -->
   <div class="tab-section" id="tab-bracket">
     <section class="panel accent-amber" id="projectionPanel">
-      <h2>Si hoy terminara la Fase de Grupos</h2>
+      <h2>Si hoy terminara el Mundial</h2>
       <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">
         Proyección de los 16avos con la tabla de posiciones de hoy
         (incluido el rival exacto contra terceros, según el Anexo C oficial de la FIFA). De octavos en adelante,
@@ -368,6 +384,15 @@
     <section class="panel accent-teal">
       <h2>Cruces oficiales confirmados</h2>
       <div id="bracketArea"></div>
+    </section>
+  </div>
+
+  <!-- ── BRACKET VISUAL ── -->
+  <div class="tab-section" id="tab-bracket-visual">
+    <section class="panel accent-gold" style="--accent:var(--gold);">
+      <h2>Bracket</h2>
+      <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Árbol completo del torneo — desde dieciseisavos hasta la final. Los cruces confirmados por la FIFA aparecen en cuanto se publican.</p>
+      <div id="bracketViz" style="overflow-x:auto;padding-bottom:12px;"></div>
     </section>
   </div>
 
@@ -1283,23 +1308,17 @@ function renderPredictions(){
   const accuracyEl = document.getElementById('predictionsAccuracy');
   list.innerHTML = '';
 
-  // Mismo corte de "día de fútbol" que usa predict.js (7am UTC):
-  // mostramos solo las predicciones del día activo, no acumuladas de días previos.
+  // Día activo (mismo corte 7am UTC que usa predict.js)
   const now = new Date();
   const BOUNDARY_HOUR_UTC = 7;
   const todayBoundary = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), BOUNDARY_HOUR_UTC, 0, 0));
   const currentDayStart = now.getTime() >= todayBoundary.getTime() ? todayBoundary : new Date(todayBoundary.getTime() - 86400000);
   const currentDateKey = currentDayStart.toISOString().slice(0, 10);
 
-  const allPreds = [];
-  for(const day of (state.predictions || [])){
-    if(day.date !== currentDateKey) continue; // solo el día activo
-    for(const p of (day.predictions || [])){
-      allPreds.push({ ...p, date: day.date });
-    }
-  }
+  // Todos los días ordenados de más reciente a más antiguo
+  const allDays = [...(state.predictions || [])].sort((a,b) => b.date < a.date ? -1 : 1);
 
-  if(allPreds.length === 0){
+  if(allDays.length === 0 || allDays.every(d => (d.predictions||[]).length === 0)){
     accuracyEl.style.display = 'none';
     const li = document.createElement('li');
     li.style.cssText = 'display:block;font-size:11.5px;color:var(--muted);border:none;padding-top:6px;';
@@ -1308,45 +1327,74 @@ function renderPredictions(){
     return;
   }
 
+  // Contadores acumulados (todos los días)
   let exact = 0, direction = 0, wrong = 0, pending = 0;
 
-  allPreds.sort((a,b) => b.date < a.date ? -1 : 1).forEach(p => {
-    const real = findRealMatchById(p.matchId);
-    const li = document.createElement('li');
-    const homeEs = p.homeTeamId ? esName({id:p.homeTeamId, name:p.homeTeamName}) : (p.homeTeamName || '?');
-    const awayEs = p.awayTeamId ? esName({id:p.awayTeamId, name:p.awayTeamName}) : (p.awayTeamName || '?');
+  allDays.forEach(day => {
+    const preds = day.predictions || [];
+    if(preds.length === 0) return;
 
-    let badge = '';
-    let resultNote = '';
-    if(real && real.status === 'FINISHED' && real.score?.fullTime?.home != null){
-      const rh = real.score.fullTime.home, ra = real.score.fullTime.away;
-      const predDir = Math.sign(p.homeGoals - p.awayGoals);
-      const realDir = Math.sign(rh - ra);
-      if(p.homeGoals === rh && p.awayGoals === ra){ badge = '🎯 exacto'; exact++; }
-      else if(predDir === realDir){ badge = '👍 le atinó al resultado'; direction++; }
-      else { badge = '❌ falló'; wrong++; }
-      resultNote = ` · real ${rh}-${ra}`;
-    } else if(real && (real.status === 'IN_PLAY' || real.status === 'PAUSED' || real.status === 'LIVE')){
-      badge = '🔴 en vivo';
-      resultNote = ` · va ${real.score?.fullTime?.home ?? 0}-${real.score?.fullTime?.away ?? 0}`;
-    } else {
-      badge = '⏳ pendiente';
-      pending++;
-    }
+    const isToday = day.date === currentDateKey;
 
-    li.innerHTML = `
-      <span class="rk">${p.homeGoals}-${p.awayGoals}</span>
-      <span>${homeEs} vs ${awayEs}<br><span class="grp" style="display:block;margin-top:3px;font-style:italic;">${p.reasoning || ''}</span></span>
-      <span class="grp">${badge}${resultNote}</span>
-      <span class="pts"></span>`;
-    list.appendChild(li);
+    // Encabezado de día
+    const header = document.createElement('li');
+    const dateLabel = isToday ? 'Hoy' : new Date(day.date + 'T12:00:00Z').toLocaleDateString('es-MX', {weekday:'long', day:'numeric', month:'long'});
+    header.style.cssText = 'display:block;font-size:11px;font-weight:700;color:var(--mint);text-transform:uppercase;letter-spacing:0.06em;border:none;padding:14px 4px 6px;margin-top:4px;';
+    header.textContent = dateLabel;
+    list.appendChild(header);
+
+    preds.forEach(p => {
+      const real = findRealMatchById(p.matchId);
+      const li = document.createElement('li');
+      const homeEs = p.homeTeamId ? esName({id:p.homeTeamId, name:p.homeTeamName}) : (p.homeTeamName || '?');
+      const awayEs = p.awayTeamId ? esName({id:p.awayTeamId, name:p.awayTeamName}) : (p.awayTeamName || '?');
+
+      let badge = '';
+      let resultNote = '';
+      if(real && real.status === 'FINISHED' && real.score?.fullTime?.home != null){
+        const rh = real.score.fullTime.home, ra = real.score.fullTime.away;
+        const predDir = Math.sign(p.homeGoals - p.awayGoals);
+        const realDir = Math.sign(rh - ra);
+        const isKnockout = real.stage && real.stage !== 'GROUP_STAGE';
+
+        if(p.homeGoals === rh && p.awayGoals === ra){
+          badge = '🎯 exacto'; exact++;
+        } else if(isKnockout && predDir === 0){
+          badge = '❌ falló'; wrong++;
+        } else if(predDir === realDir){
+          badge = '👍 resultado'; direction++;
+        } else {
+          badge = '❌ falló'; wrong++;
+        }
+        resultNote = ` · ${rh}-${ra}`;
+      } else if(real && (real.status === 'IN_PLAY' || real.status === 'PAUSED' || real.status === 'LIVE')){
+        badge = '🔴 en vivo';
+        resultNote = ` · ${real.score?.fullTime?.home ?? 0}-${real.score?.fullTime?.away ?? 0}`;
+      } else {
+        badge = '⏳';
+        pending++;
+      }
+
+      li.innerHTML = `
+        <span class="rk">${p.homeGoals}-${p.awayGoals}</span>
+        <span>${homeEs} vs ${awayEs}<br><span class="grp" style="display:block;margin-top:3px;font-style:italic;">${p.reasoning || ''}</span></span>
+        <span class="grp">${badge}${resultNote}</span>
+        <span class="pts"></span>`;
+      list.appendChild(li);
+    });
   });
 
+  // Historial acumulado
   const evaluated = exact + direction + wrong;
   if(evaluated > 0){
     accuracyEl.style.display = '';
-    accuracyEl.style.cssText = 'font-size:12px;color:var(--muted);margin-bottom:8px;';
-    accuracyEl.textContent = `Marcador exacto: ${exact} · Le atinó al resultado: ${direction} · Falló: ${wrong} (de ${evaluated} partidos ya evaluados)`;
+    accuracyEl.style.cssText = 'font-size:12px;color:var(--muted);margin-bottom:12px;padding:10px 12px;background:var(--card-2);border-radius:8px;border:1px solid var(--line);';
+    const pct = Math.round((exact + direction) / evaluated * 100);
+    accuracyEl.innerHTML = `<strong style="color:var(--text);">Historial total</strong> &nbsp;·&nbsp; 
+      🎯 <strong style="color:var(--lime);">${exact}</strong> exactos &nbsp;·&nbsp; 
+      👍 <strong style="color:var(--gold);">${direction}</strong> resultado &nbsp;·&nbsp; 
+      ❌ <strong style="color:var(--coral);">${wrong}</strong> fallados &nbsp;·&nbsp; 
+      <strong style="color:var(--mint);">${pct}%</strong> de acierto`;
   } else {
     accuracyEl.style.display = 'none';
   }
@@ -1808,6 +1856,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     // Al cambiar a predicciones, re-renderiza por si cambiaron los datos en vivo
     if(target === 'predicciones') renderPredictions();
     if(target === 'escenarios') renderScenarios();
+    if(target === 'bracket-visual') renderBracketVisual();
   });
 });
 
@@ -1927,301 +1976,4 @@ document.getElementById('saveOddsBtn').addEventListener('click', async () => {
     const data = await res.json();
     if(data.ok){
       msg.className = 'msg ok';
-      msg.textContent = `${data.count} partido(s) guardado(s) — ya visibles para todos.`;
-      state.odds = localOdds;
-      renderScenarios();
-    } else { throw new Error(data.error || 'Error desconocido'); }
-  } catch(err){
-    msg.className = 'msg error';
-    msg.textContent = 'Error al guardar: ' + err.message;
-  }
-});
-
-document.getElementById('clearOddsBtn').addEventListener('click', async () => {
-  if(!confirm('¿Borrar todos los momios?')) return;
-  localOdds = [];
-  renderAdminOddsList();
-  const msg = document.getElementById('oddsSaveMsg');
-  try {
-    await fetch('/.netlify/functions/save-odds', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_PW },
-      body: JSON.stringify({ odds: [] })
-    });
-    msg.className = 'msg ok'; msg.style.display = 'block';
-    msg.textContent = 'Momios borrados.';
-    state.odds = [];
-    renderScenarios();
-  } catch(err){
-    msg.className = 'msg error'; msg.style.display = 'block';
-    msg.textContent = 'Error: ' + err.message;
-  }
-});
-
-
-// ── ESCENARIOS ──
-function impliedProbs(home, draw, away){
-  const total = 1/home + 1/draw + 1/away;
-  return { home:(1/home)/total, draw:(1/draw)/total, away:(1/away)/total };
-}
-
-// Dada la tabla actual de un grupo y los momios de sus partidos pendientes,
-// calcula la probabilidad de que cada equipo quede en cada posición (1°, 2°, 3°).
-// Estrategia: simulación discreta de los resultados posibles (victoria/empate/derrota)
-// para cada partido pendiente, ponderada por las probabilidades implícitas de los momios.
-function computeGroupPositionProbs(groupLetter, pendingOdds){
-  const grp = workingGroups[groupLetter];
-  if(!grp || grp.length === 0) return {};
-
-  // Equipos del grupo con sus stats actuales
-  const teams = grp.map(t => ({
-    id: t.id, name: t.name, esName: esName(t),
-    pts: t.points||0, gd: (t.gf||0)-(t.ga||0), gf: t.gf||0
-  }));
-
-  // Encuentra los partidos pendientes de este grupo que tienen momios capturados
-  const pending = (state.allMatches||[]).filter(m =>
-    m.stage === 'GROUP_STAGE' &&
-    (m.group||'').trim().slice(-1) === groupLetter &&
-    (m.status === 'SCHEDULED' || m.status === 'TIMED')
-  );
-
-  if(pending.length === 0){
-    // Grupo ya terminado — posiciones deterministas
-    const sorted = [...teams].sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf);
-    const result = {};
-    teams.forEach(t => { result[t.id] = {1:0, 2:0, 3:0, 4:0}; });
-    sorted.forEach((t,i) => { result[t.id][i+1] = 1; });
-    return result;
-  }
-
-  // Para cada partido pendiente, buscamos momios capturados
-  function findOdds(m){
-    const homeName = (m.homeTeam?.name||'').toLowerCase();
-    const awayName = (m.awayTeam?.name||'').toLowerCase();
-    const homeEs = esName(m.homeTeam||{}).toLowerCase();
-    const awayEs = esName(m.awayTeam||{}).toLowerCase();
-    for(const o of pendingOdds){
-      const label = (o.matchLabel||'').toLowerCase();
-      // Busca tanto en inglés (nombre de la API) como en español (nombre del label)
-      const homeWords = [homeName.split(' ')[0], homeEs.split(' ')[0]].filter(w => w.length > 2);
-      const awayWords = [awayName.split(' ')[0], awayEs.split(' ')[0]].filter(w => w.length > 2);
-      if(homeWords.some(w => label.includes(w)) || awayWords.some(w => label.includes(w))){
-        return impliedProbs(o.home, o.draw, o.away);
-      }
-    }
-    return null; // sin momios para este partido
-  }
-
-  // Genera todos los escenarios posibles (3^n para n partidos)
-  // Cada escenario es un array de resultados: 'H' | 'D' | 'A'
-  const scenarios = [[]];
-  for(const m of pending){
-    const p = findOdds(m);
-    const newScenarios = [];
-    for(const s of scenarios){
-      newScenarios.push([...s, {m, result:'H', prob: p ? p.home : 1/3}]);
-      newScenarios.push([...s, {m, result:'D', prob: p ? p.draw : 1/3}]);
-      newScenarios.push([...s, {m, result:'A', prob: p ? p.away : 1/3}]);
-    }
-    scenarios.length = 0;
-    scenarios.push(...newScenarios);
-  }
-
-  // Acumula probabilidades de posición por equipo
-  const posProbs = {};
-  teams.forEach(t => { posProbs[t.id] = {1:0, 2:0, 3:0, 4:0}; });
-
-  for(const scenario of scenarios){
-    // Probabilidad del escenario = producto de las probs de cada resultado
-    const scenarioProb = scenario.reduce((acc, s) => acc * s.prob, 1);
-
-    // Aplica los resultados al estado del grupo
-    const simTeams = teams.map(t => ({...t}));
-    for(const {m, result} of scenario){
-      const home = simTeams.find(t => t.id == m.homeTeam?.id);
-      const away = simTeams.find(t => t.id == m.awayTeam?.id);
-      if(!home || !away) continue;
-      if(result === 'H'){ home.pts += 3; home.gd += 1; home.gf += 1; away.gd -= 1; }
-      else if(result === 'A'){ away.pts += 3; away.gd += 1; away.gf += 1; home.gd -= 1; }
-      else { home.pts += 1; away.pts += 1; }
-    }
-    // Ordena y asigna posiciones
-    simTeams.sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf);
-    simTeams.forEach((t, i) => {
-      if(posProbs[t.id]) posProbs[t.id][i+1] = (posProbs[t.id][i+1]||0) + scenarioProb;
-    });
-  }
-  return posProbs;
-}
-
-function renderScenarios(){
-  const grid = document.getElementById('scenariosGrid');
-  if(!grid) return;
-  const odds = state.odds || [];
-  if(odds.length === 0){
-    grid.innerHTML = '<div class="empty-state"><strong>Sin momios cargados.</strong><br>El admin necesita capturar los momios de los partidos pendientes.</div>';
-    return;
-  }
-  if(!state.live || !workingGroups){
-    grid.innerHTML = '<div class="empty-state">Cargando datos en vivo...</div>';
-    return;
-  }
-
-  // ── MONTE CARLO COMPLETO CON ANNEX_C ──
-  // En vez de calcular por grupo de forma independiente y luego cruzar,
-  // simulamos TODOS los grupos simultáneamente en cada escenario, aplicamos
-  // el Annexo C oficial para determinar los cruces reales de 16avos, y
-  // acumulamos probabilidades por cruce.
-
-  const allGroups = Object.keys(workingGroups);
-  const NUM_SAMPLES = 5000; // suficiente para convergencia razonable
-
-  // Estado base por grupo (puntos/gd/gf actuales de cada equipo)
-  const baseState = {};
-  for(const g of allGroups){
-    baseState[g] = workingGroups[g].map(t => ({
-      id: t.id, name: t.name,
-      pts: t.points||0, gd: (t.gf||0)-(t.ga||0), gf: t.gf||0, played: t.played||0
-    }));
-  }
-
-  // Partidos pendientes con sus momios
-  function getPendingWithOdds(){
-    const pending = (state.allMatches||[]).filter(m =>
-      m.stage === 'GROUP_STAGE' && (m.status === 'SCHEDULED' || m.status === 'TIMED')
-    );
-    return pending.map(m => {
-      const homeName = (m.homeTeam?.name||'').toLowerCase();
-      const awayName = (m.awayTeam?.name||'').toLowerCase();
-      const homeEs = esName(m.homeTeam||{}).toLowerCase();
-      const awayEs = esName(m.awayTeam||{}).toLowerCase();
-      let probs = null;
-      for(const o of odds){
-        const label = (o.matchLabel||'').toLowerCase();
-        const hw = [homeName.split(' ')[0], homeEs.split(' ')[0]].filter(w=>w.length>2);
-        const aw = [awayName.split(' ')[0], awayEs.split(' ')[0]].filter(w=>w.length>2);
-        if(hw.some(w=>label.includes(w)) || aw.some(w=>label.includes(w))){
-          probs = impliedProbs(o.home, o.draw, o.away);
-          break;
-        }
-      }
-      return { m, probs: probs || {home:1/3, draw:1/3, away:1/3} };
-    });
-  }
-
-  const pendingWithOdds = getPendingWithOdds();
-
-  // Acumula los cruces {matchNum -> {homeVsAway -> count}}
-  const crossingCounts = {};
-  for(let id = 73; id <= 88; id++) crossingCounts[id] = {};
-
-  for(let sample = 0; sample < NUM_SAMPLES; sample++){
-    // Simula todos los partidos pendientes con muestreo aleatorio
-    const simGroups = {};
-    for(const g of allGroups){
-      simGroups[g] = baseState[g].map(t => ({...t}));
-    }
-
-    for(const {m, probs} of pendingWithOdds){
-      const grpLetter = (m.group||'').trim().slice(-1);
-      const grp = simGroups[grpLetter];
-      if(!grp) continue;
-      const home = grp.find(t => t.id == m.homeTeam?.id);
-      const away = grp.find(t => t.id == m.awayTeam?.id);
-      if(!home || !away) continue;
-
-      const r = Math.random();
-      if(r < probs.home){ home.pts+=3; home.gd+=1; home.gf+=1; away.gd-=1; }
-      else if(r < probs.home + probs.draw){ home.pts+=1; away.pts+=1; }
-      else { away.pts+=3; away.gd+=1; away.gf+=1; home.gd-=1; }
-    }
-
-    // Ordena cada grupo
-    const sortedGroups = {};
-    for(const g of allGroups){
-      sortedGroups[g] = [...simGroups[g]].sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf);
-    }
-
-    // Determina los 8 mejores terceros y aplica ANNEX_C
-    const thirds = allGroups.map(g => ({
-      ...sortedGroups[g][2], group: g
-    })).sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf);
-    const best8 = thirds.slice(0, 8);
-    const best8ByGroup = {};
-    best8.forEach(t => { best8ByGroup[t.group] = t; });
-    const comboKey = best8.map(t=>t.group).sort().join('');
-    const annexMapping = ANNEX_C[comboKey] || {};
-
-    // Resuelve los 16 cruces
-    for(let id = 73; id <= 88; id++){
-      const slot = FULL_BRACKET[id];
-      if(!slot || slot.round !== 'R32') continue;
-
-      const homeTeam = sortedGroups[slot.home.group]?.[slot.home.pos-1];
-      let awayTeam = null;
-
-      if(slot.type === 'fixed'){
-        awayTeam = sortedGroups[slot.away.group]?.[slot.away.pos-1];
-      } else if(slot.type === 'third'){
-        const thirdGroup = annexMapping[slot.home.group];
-        awayTeam = thirdGroup ? best8ByGroup[thirdGroup] : null;
-      }
-
-      if(!homeTeam || !awayTeam) continue;
-      const homeEs = esName(homeTeam);
-      const awayEs = esName(awayTeam);
-      const key = `${homeEs}|||${awayEs}`;
-      crossingCounts[id][key] = (crossingCounts[id][key]||0) + 1;
-    }
-  }
-
-  // Convierte conteos a probabilidades y renderiza
-  const crossings = [];
-  for(let id = 73; id <= 88; id++){
-    const slot = FULL_BRACKET[id];
-    if(!slot || slot.round !== 'R32') continue;
-    const counts = crossingCounts[id];
-    const total = Object.values(counts).reduce((s,v)=>s+v,0) || 1;
-    const possibleMatches = Object.entries(counts)
-      .map(([key, count]) => {
-        const [home, away] = key.split('|||');
-        return { home, away, prob: count/total };
-      })
-      .sort((a,b) => b.prob-a.prob)
-      .slice(0, 4);
-
-    crossings.push({ matchNum: id, matches: possibleMatches, date: slot.date, venue: slot.venue });
-  }
-
-  // Renderiza
-  grid.innerHTML = crossings.map(c => {
-    const topMatch = c.matches[0];
-    const topProb = topMatch ? Math.round(topMatch.prob * 100) : 0;
-    const probColor = topProb >= 70 ? 'var(--lime)' : topProb >= 40 ? 'var(--gold)' : 'var(--muted)';
-
-    return `<div class="match-card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <span style="font-size:10px;color:var(--muted);font-family:'Roboto Mono',monospace;">PARTIDO ${c.matchNum} · ${c.date} · ${c.venue}</span>
-        <span style="font-size:11px;font-weight:700;color:${probColor};font-family:'Roboto Mono',monospace;">${topProb}%</span>
-      </div>
-      ${c.matches.map((match, i) => `
-        <div style="${i>0?'margin-top:6px;padding-top:6px;border-top:1px solid var(--line);opacity:0.7;':''}">
-          <div class="vs" style="font-size:${i===0?'14.5':'12.5'}px;">
-            <div class="side"><span>${match.home}</span></div>
-            <div class="versus">VS</div>
-            <div class="side"><span>${match.away}</span></div>
-          </div>
-          ${i>0?`<div style="font-size:10.5px;color:var(--muted);font-family:'Roboto Mono',monospace;margin-top:3px;">probabilidad: ${Math.round(match.prob*100)}%</div>`:''}
-        </div>
-      `).join('')}
-    </div>`;
-  }).join('');
-}
-
-let localOdds = [];
-
-function initOdds(){ /* no-op: los momios se cargan via fetchOdds() */ }
-</script>
-</body>
-</html>
+      msg.textContent = `${da
