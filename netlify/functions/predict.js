@@ -158,22 +158,50 @@ exports.handler = async (event) => {
 
     // 2) Construir el contexto de cada partido: piso estructural (Klement) +
     //    forma real del torneo hasta ahora.
+    // Mapa de nombres en español para el prompt
+    const esNames = {
+      'Mexico':'México','Spain':'España','Argentina':'Argentina','France':'Francia',
+      'Germany':'Alemania','Brazil':'Brasil','England':'Inglaterra','Netherlands':'Países Bajos',
+      'Portugal':'Portugal','Colombia':'Colombia','Uruguay':'Uruguay','USA':'Estados Unidos',
+      'Canada':'Canadá','Morocco':'Marruecos','Japan':'Japón','Switzerland':'Suiza',
+      'Belgium':'Bélgica','Croatia':'Croacia','Ecuador':'Ecuador','Senegal':'Senegal',
+      'Denmark':'Dinamarca','Australia':'Australia','Poland':'Polonia','South Korea':'Corea del Sur',
+      'Costa Rica':'Costa Rica','Ghana':'Ghana','Cameroon':'Camerún','Tunisia':'Túnez',
+      'Saudi Arabia':'Arabia Saudita','Japan':'Japón','South Africa':'Sudáfrica',
+      'Sweden':'Suecia','Scotland':'Escocia','Norway':'Noruega','Turkey':'Turquía',
+      'Paraguay':'Paraguay','Ivory Coast':'Costa de Marfil','Bosnia and Herzegovina':'Bosnia',
+      'Qatar':'Catar','Cape Verde':'Cabo Verde','New Zealand':'Nueva Zelanda',
+      'Iran':'Irán','Egypt':'Egipto','Algeria':'Argelia','Jordan':'Jordania',
+      'Austria':'Austria','Iraq':'Irak','Congo DR':'Congo RD','Uzbekistan':'Uzbekistán',
+      'Panama':'Panamá','Haiti':'Haití','Curacao':'Curazao','Korea Republic':'Corea del Sur',
+      'Czechia':'República Checa','Serbia':'Serbia','Ukraine':'Ucrania'
+    };
+    function esTeamName(name){ return esNames[name] || name; }
+
     const matchBlocks = todays.map(m => {
       const home = m.homeTeam, away = m.awayTeam;
-      return `Partido: ${home.name} vs ${away.name} (${m.stage}${m.group ? ", " + m.group : ""})
-- ${home.name} — estructural: ${klementLine(home.name)}; forma en el torneo: ${formLine(home.id, allMatches)}
-- ${away.name} — estructural: ${klementLine(away.name)}; forma en el torneo: ${formLine(away.id, allMatches)}
+      const homeEs = esTeamName(home.name);
+      const awayEs = esTeamName(away.name);
+      return `Partido: ${homeEs} vs ${awayEs} (${m.stage}${m.group ? ", " + m.group : ""})
+- ${homeEs} — estructural: ${klementLine(home.name)}; forma en el torneo: ${formLine(home.id, allMatches)}
+- ${awayEs} — estructural: ${klementLine(away.name)}; forma en el torneo: ${formLine(away.id, allMatches)}
 - id_partido: ${m.id}`;
     }).join("\n\n");
 
-    const systemPrompt = `Eres parte de una app de seguimiento del Mundial 2026 hecha para uso personal/entre amigos. Tu trabajo es predecir el marcador de los partidos de hoy.
+    const systemPrompt = `Eres parte de una app del Mundial 2026 hecha para uso personal entre cuates. Tu chamba es predecir el marcador de los partidos de hoy.
 
-Tienes dos tipos de información para cada partido: (1) un "piso estructural" inspirado en el modelo del economista Joachim Klement (PIB per cápita, población, tradición futbolística, ranking FIFA) — esto es solo un punto de partida, NO una fórmula que debas seguir mecánicamente; y (2) la forma real de cada equipo en lo que va del torneo.
+Tienes dos tipos de info por partido: (1) un "piso estructural" al estilo del economista Joachim Klement (PIB per cápita, población, tradición futbolera, ranking FIFA) — es solo un punto de partida, NO una fórmula que debas seguir al pie de la letra; y (2) la forma real de cada selección en lo que va del torneo.
 
-Tienes total libertad para no basarte solo en las estadísticas: puedes meter intuición, narrativa, "cosas raras" (rachas, paridad de apellidos, lo que se te ocurra que sea divertido), igual que haría un amigo que sabe de fútbol prediciendo entre cervezas. No tienes que ser conservador ni "razonable" — está bien predecir una sorpresa si tu instinto te lo dice.
+IMPORTANTE sobre empates: 
+- En fase de grupos (GROUP_STAGE) el empate es resultado válido — ponlo si lo ves venir.
+- En rondas de eliminación (LAST_32, LAST_16, QUARTER_FINALS, SEMI_FINALS, FINAL) también puedes predecir empate en el marcador si crees que el partido va parejo y se decide en tiempo extra o penales. En ese caso, en el reasoning menciona brevemente quién crees que avanza (ej: "empate y México avanza en penales").
+
+Tienes total libertad para no basarte solo en las estadísticas: puedes meter intuición, narrativa, "cosas raras" (rachas, astros alineados, lo que se te ocurra que sea divertido), igual que haría un cuate que sabe de fútbol prediciendo entre chelas. No tienes que ser conservador ni "razonable" — si tu instinto dice sorpresa, adelante.
+
+Escribe el reasoning en español mexicano, con personalidad y algo de relajo. Máximo ~30 palabras por partido.
 
 Responde ÚNICAMENTE con un array JSON válido, sin texto antes ni después, con este formato exacto:
-[{"matchId": 12345, "homeGoals": 2, "awayGoals": 1, "reasoning": "una o dos frases en español, con personalidad, máximo ~30 palabras"}]`;
+[{"matchId": 12345, "homeGoals": 2, "awayGoals": 1, "reasoning": "frase corta en español mexicano con personalidad"}]`;
 
     const userPrompt = `Predice el marcador de estos partidos de hoy:\n\n${matchBlocks}`;
 
