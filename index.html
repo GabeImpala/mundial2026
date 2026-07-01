@@ -1283,9 +1283,13 @@ function renderPredictions(){
         const predDir = Math.sign(p.homeGoals - p.awayGoals);
         const realDir = Math.sign(rh - ra);
         const isKnockout = real.stage && real.stage !== 'GROUP_STAGE';
+        const wentToExtraTime = isKnockout && (real.score?.duration === 'EXTRA_TIME' || real.score?.duration === 'PENALTY_SHOOTOUT');
 
         if(p.homeGoals === rh && p.awayGoals === ra){
           badge = '🎯 exacto'; exact++;
+        } else if(isKnockout && predDir === 0 && wentToExtraTime){
+          // Predijo empate en eliminatoria Y el partido fue a prórroga/penales
+          badge = '🔮 acertó la prórroga'; direction++;
         } else if(isKnockout && predDir === 0){
           badge = '❌ falló'; wrong++;
         } else if(predDir === realDir){
@@ -1319,7 +1323,7 @@ function renderPredictions(){
     const pct = Math.round((exact + direction) / evaluated * 100);
     accuracyEl.innerHTML = `<strong style="color:var(--text);">Historial total</strong> &nbsp;·&nbsp; 
       🎯 <strong style="color:var(--lime);">${exact}</strong> exactos &nbsp;·&nbsp; 
-      👍 <strong style="color:var(--gold);">${direction}</strong> resultado &nbsp;·&nbsp; 
+      👍 <strong style="color:var(--gold);">${direction}</strong> resultado/prórroga &nbsp;·&nbsp; 
       ❌ <strong style="color:var(--coral);">${wrong}</strong> fallados &nbsp;·&nbsp; 
       <strong style="color:var(--mint);">${pct}%</strong> de acierto`;
   } else {
