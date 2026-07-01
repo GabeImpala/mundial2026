@@ -370,85 +370,12 @@
   </div>
 
   <!-- ── SI HOY TERMINARA ── -->
-  <div class="tab-section" id="tab-bracket">
-    <section class="panel accent-amber" id="projectionPanel">
-      <h2>Si hoy terminara el Mundial</h2>
-      <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">
-        Proyección de los 16avos con la tabla de posiciones de hoy
-        (incluido el rival exacto contra terceros, según el Anexo C oficial de la FIFA). De octavos en adelante,
-        cada partido se resuelve solo conforme llegan los resultados reales.
-      </p>
-      <div class="bracket-list" id="projectionArea"></div>
-    </section>
-
-    <section class="panel accent-teal">
-      <h2>Cruces oficiales confirmados</h2>
-      <div id="bracketArea"></div>
-    </section>
-  </div>
-
   <!-- ── BRACKET VISUAL ── -->
   <div class="tab-section" id="tab-bracket-visual">
     <section class="panel accent-gold" style="--accent:var(--gold);">
       <h2>Bracket</h2>
       <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Árbol completo del torneo — desde dieciseisavos hasta la final. Los cruces confirmados por la FIFA aparecen en cuanto se publican.</p>
       <div id="bracketViz" style="overflow-x:auto;padding-bottom:12px;"></div>
-    </section>
-  </div>
-
-  <!-- ── ESCENARIOS MÁS PROBABLES ── -->
-  <div class="tab-section" id="tab-escenarios">
-    <section class="panel accent-mint">
-      <h2>Escenarios más probables</h2>
-      <p style="font-size:12.5px;color:var(--muted);margin-top:-4px;">Para cada cruce de dieciseisavos, simulamos todos los escenarios posibles de los partidos que faltan — ponderados por las probabilidades implícitas de los momios del mercado. El cruce más probable aparece arriba; los alternativos abajo con su % de ocurrencia. Entre más alto el %, más "cantado" está ese enfrentamiento.</p>
-      <div id="scenariosGrid" class="bracket-list">
-        <div class="empty-state"><strong>Sin momios cargados.</strong><br>El admin necesita capturar los momios de los partidos pendientes.</div>
-      </div>
-    </section>
-  </div>
-
-  <!-- ── ADMIN ── -->
-  <div class="tab-section" id="tab-admin">
-    <section class="panel accent-amber">
-      <h2>Admin — momios</h2>
-
-      <div id="adminLock">
-        <p style="font-size:13px;color:var(--muted);margin-top:0;">Área restringida. Ingresa la contraseña para continuar.</p>
-        <div class="config-row">
-          <input type="password" id="adminPwInput" placeholder="Contraseña" style="max-width:260px;">
-          <button id="adminPwBtn">Entrar</button>
-        </div>
-        <div class="msg" id="adminPwMsg"></div>
-      </div>
-
-      <div id="adminContent" style="display:none;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <p style="font-size:12.5px;color:var(--muted);margin:0;">Agrega los momios de los partidos pendientes. Se guardan en la nube — todos los visitantes los ven.</p>
-          <button class="ghost" style="font-size:11px;padding:5px 12px;" id="adminLogoutBtn">Cerrar sesión</button>
-        </div>
-
-        <!-- Agregar partido -->
-        <div class="admin-form" style="margin-bottom:20px;">
-          <div class="admin-hint">
-            Formato: <code>España vs Arabia Saudita | 1.60 | 3.80 | 5.50</code><br>
-            (Local | momio local | momio empate | momio visitante)
-          </div>
-          <div class="config-row">
-            <input type="text" id="oddsInput" placeholder="España vs Arabia | 1.60 | 3.80 | 5.50" style="flex:1;">
-            <button id="addOddsBtn">Agregar</button>
-          </div>
-          <div class="msg" id="oddsMsg"></div>
-        </div>
-
-        <!-- Lista de partidos cargados -->
-        <div id="adminOddsList" style="margin-bottom:16px;"></div>
-
-        <div class="config-row">
-          <button id="saveOddsBtn">💾 Guardar todo</button>
-          <button class="ghost danger" id="clearOddsBtn">Borrar todo</button>
-        </div>
-        <div class="msg" id="oddsSaveMsg"></div>
-      </div>
     </section>
   </div>
 
@@ -1416,6 +1343,7 @@ function stageLabel(stage){
 
 function renderBracket(){
   const area = document.getElementById('bracketArea');
+  if(!area) return;
   if(state.matches && state.matches.length > 0){
     const byStage = {};
     state.matches.forEach(m => {
@@ -1552,6 +1480,7 @@ function resolveMatch(matchId, cache){
 
 function renderFullBracket(){
   const area = document.getElementById('projectionArea');
+  if(!area) return;
   const cache = {};
   const ids = Object.keys(FULL_BRACKET).map(Number).sort((a,b) => a - b);
   let html = '';
@@ -1811,34 +1740,13 @@ function render(){
 
 document.getElementById('refreshBtn').addEventListener('click', fetchLiveData);
 
-// Mostramos datos de muestra de inmediato para que la página nunca cargue
-// vacía, y al mismo tiempo pedimos los datos en vivo en segundo plano.
-async function fetchOdds(){
-  try {
-    const res = await fetch('/.netlify/functions/get-odds');
-    if(!res.ok) return;
-    const data = await res.json();
-    state.odds = data.odds || [];
-    localOdds = [...state.odds];
-    if(document.getElementById('adminContent')?.style.display !== 'none'){
-      renderAdminOddsList();
-    }
-    renderScenarios();
-  } catch(err){ /* silencioso */ }
-}
 
 loadDemo();
 fetchLiveData();
 fetchPredictions();
-fetchOdds();
 
-// Se actualiza solo cada 60s, para que un gol en un partido en curso
-// mueva las posiciones sin que tengas que darle clic a "Actualizar ahora".
 setInterval(() => { fetchLiveData(); fetchPredictions(); }, 60000);
 
-// Registro del service worker: habilita "Agregar a pantalla de inicio" en
-// Android/Chrome. Si falla (navegador viejo, modo privado, etc.) la app
-// sigue funcionando normal, solo sin la opción de instalarse.
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -1853,127 +1761,99 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('tab-' + target).classList.add('active');
-    // Al cambiar a predicciones, re-renderiza por si cambiaron los datos en vivo
     if(target === 'predicciones') renderPredictions();
-    if(target === 'escenarios') renderScenarios();
     if(target === 'bracket-visual') renderBracketVisual();
   });
 });
 
-
-// ── ADMIN PASSWORD ──
-const ADMIN_PW = 'Hasl3tEngin33ring';
-
-function unlockAdmin(){
-  document.getElementById('adminLock').style.display = 'none';
-  document.getElementById('adminContent').style.display = 'block';
-  // Sincroniza localOdds con lo que ya está en Blobs (si fetchOdds ya corrió)
-  if(state.odds && state.odds.length > 0 && localOdds.length === 0){
-    localOdds = [...state.odds];
-  }
-  renderAdminOddsList();
-}
-
-// Auto-unlock if already authenticated this session
-if(sessionStorage.getItem('mundial2026_admin') === '1') unlockAdmin();
-
-document.getElementById('adminPwBtn').addEventListener('click', () => {
-  const val = document.getElementById('adminPwInput').value;
-  const msg = document.getElementById('adminPwMsg');
-  if(val === ADMIN_PW){
-    sessionStorage.setItem('mundial2026_admin', '1');
-    unlockAdmin();
-  } else {
-    msg.className = 'msg error'; msg.style.display = 'block';
-    msg.textContent = 'Contraseña incorrecta.';
-    document.getElementById('adminPwInput').value = '';
-  }
-});
-
-document.getElementById('adminPwInput').addEventListener('keydown', e => {
-  if(e.key === 'Enter') document.getElementById('adminPwBtn').click();
-});
-
-const logoutBtn = document.getElementById('adminLogoutBtn');
-if(logoutBtn) logoutBtn.addEventListener('click', () => {
-  sessionStorage.removeItem('mundial2026_admin');
-  localOdds = [];
-  document.getElementById('adminContent').style.display = 'none';
-  document.getElementById('adminLock').style.display = 'block';
-  document.getElementById('adminPwInput').value = '';
-  document.getElementById('adminPwMsg').style.display = 'none';
-});
-
-// ── MOMIOS ──
-// Los momios se guardan en localStorage como array de objetos.
-// Formato: [{matchLabel, home, draw, away}]
-// El admin los escribe en texto plano y los parseamos aquí.
-
-function oddsToProb(odds){ return odds > 0 ? Math.round(100 / odds) : 0; }
-
-function oddsToProb(odds){ return odds > 0 ? Math.round(100 / odds) : 0; }
-
-function parseOddsLine(line){
-  const parts = line.split('|').map(p => p.trim());
-  if(parts.length < 4) return null;
-  const [matchLabel, h, d, a] = parts;
-  const home = parseFloat(h), draw = parseFloat(d), away = parseFloat(a);
-  if(isNaN(home) || isNaN(draw) || isNaN(away)) return null;
-  return { matchLabel, home, draw, away };
-}
-
-function renderAdminOddsList(){
-  const el = document.getElementById('adminOddsList');
+// ── BRACKET VISUAL ──
+function renderBracketVisual(){
+  const el = document.getElementById('bracketViz');
   if(!el) return;
-  if(localOdds.length === 0){
-    el.innerHTML = '<p style="font-size:12px;color:var(--muted);">Sin partidos cargados aún.</p>';
-    return;
+
+  // Resuelve un partido del bracket (reutiliza la lógica existente)
+  const cache = {};
+  function resolve(id){
+    try { return resolveMatch(id, cache); }
+    catch(e){ return {home:'Por definir', away:'Por definir', score:'', status:''}; }
   }
-  el.innerHTML = localOdds.map((o, i) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;">
-      <span style="flex:1;"><strong>${o.matchLabel}</strong> &nbsp;
-        <span style="font-family:'Roboto Mono',monospace;font-size:11px;color:var(--muted);">
-          ${o.home} / ${o.draw} / ${o.away}
-        </span>
-      </span>
-      <button class="ghost danger" style="padding:5px 10px;font-size:11px;" onclick="removeOdds(${i})">✕ Quitar</button>
-    </div>`).join('');
-}
 
-function removeOdds(i){
-  localOdds.splice(i, 1);
-  renderAdminOddsList();
-}
-
-document.getElementById('addOddsBtn').addEventListener('click', () => {
-  const input = document.getElementById('oddsInput');
-  const msg = document.getElementById('oddsMsg');
-  const parsed = parseOddsLine(input.value);
-  if(!parsed){
-    msg.className = 'msg error'; msg.style.display = 'block';
-    msg.textContent = 'Formato inválido. Ejemplo: España vs Arabia | 1.60 | 3.80 | 5.50';
-    return;
+  // Encuentra el partido real en la API para obtener marcador y estado
+  function apiMatch(id){
+    const r = resolve(id);
+    if(!r.apiMatch) return null;
+    return r.apiMatch;
   }
-  localOdds.push(parsed);
-  input.value = '';
-  msg.style.display = 'none';
-  renderAdminOddsList();
-});
-document.getElementById('oddsInput').addEventListener('keydown', e => {
-  if(e.key === 'Enter') document.getElementById('addOddsBtn').click();
-});
 
-document.getElementById('saveOddsBtn').addEventListener('click', async () => {
-  const msg = document.getElementById('oddsSaveMsg');
-  msg.className = 'msg'; msg.style.display = 'block';
-  msg.textContent = 'Guardando...';
-  try {
-    const res = await fetch('/.netlify/functions/save-odds', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-admin-key': ADMIN_PW },
-      body: JSON.stringify({ odds: localOdds })
+  // Renderiza una tarjeta de partido
+  function matchCard(id){
+    const r = resolve(id);
+    const m = r.apiMatch;
+    const isLive = m && (m.status === 'IN_PLAY' || m.status === 'PAUSED' || m.status === 'LIVE');
+    const isFinished = m && m.status === 'FINISHED';
+    const isConfirmed = m && m.homeTeam?.name && m.awayTeam?.name;
+    const hg = m?.score?.fullTime?.home;
+    const ag = m?.score?.fullTime?.away;
+    const homeWin = isFinished && hg != null && hg > ag;
+    const awayWin = isFinished && ag != null && ag > hg;
+
+    const homeLabel = r.home || 'Por definir';
+    const awayLabel = r.away || 'Por definir';
+    const homeTbd = !r.home || r.home === 'Por definir' || r.home.startsWith('Ganador');
+    const awayTbd = !r.away || r.away === 'Por definir' || r.away.startsWith('Ganador');
+
+    const scoreH = isFinished || isLive ? (hg ?? '-') : '';
+    const scoreA = isFinished || isLive ? (ag ?? '-') : '';
+
+    return `<div class="bv-match${isConfirmed?' confirmed':''}${isLive?' live':''}">
+      <div class="bv-team${homeWin?' winner':''}${homeTbd?' tbd':''}">
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px;" title="${homeLabel}">${homeLabel}</span>
+        <span class="bv-score${homeWin?' winner':''}">${scoreH}</span>
+      </div>
+      <div class="bv-team${awayWin?' winner':''}${awayTbd?' tbd':''}">
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px;" title="${awayLabel}">${awayLabel}</span>
+        <span class="bv-score${awayWin?' winner':''}">${scoreA}</span>
+      </div>
+    </div>`;
+  }
+
+  // Estructura del bracket: 4 rondas visibles (R32→Final)
+  // R32: partidos 73-88, R16: 89-96, QF: 97-100, SF: 101-102, F: 103
+  const rounds = [
+    { label: '16avos', ids: [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88] },
+    { label: 'Octavos', ids: [89,90,91,92,93,94,95,96] },
+    { label: 'Cuartos', ids: [97,98,99,100] },
+    { label: 'Semis', ids: [101,102] },
+    { label: 'Final', ids: [103] },
+  ];
+
+  // Renderiza en 2 mitades del bracket (top/bottom) para que se vea como árbol
+  const top = [73,74,75,76,77,78,79,80];
+  const bot = [81,82,83,84,85,86,87,88];
+
+  // Genera HTML de cada ronda con espaciado proporcional
+  let html = '<div class="bv-wrap">';
+
+  rounds.forEach((round, ri) => {
+    html += `<div class="bv-round">
+      <div class="bv-round-label">${round.label}</div>`;
+    round.ids.forEach(id => {
+      html += `<div style="flex:1;display:flex;align-items:center;justify-content:center;padding:3px 4px;">
+        ${matchCard(id)}
+      </div>`;
     });
-    const data = await res.json();
-    if(data.ok){
-      msg.className = 'msg ok';
-      msg.textContent = `${da
+    html += '</div>';
+
+    // Conector entre rondas (SVG simple)
+    if(ri < rounds.length - 1){
+      html += '<div class="bv-connector"></div>';
+    }
+  });
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+</script>
+</body>
+</html>
