@@ -1945,4 +1945,20 @@ function renderBracketVisual(){
         const y1 = r1.top + r1.height/2 - elRect.top + el.scrollTop;
         const y2 = r2.top + r2.height/2 - elRect.top + el.scrollTop;
         const yn = rn.top + rn.height/2 - elRect.top + el.scrollTop;
-        const mid 
+        const mid = (y1+y2)/2;
+        const color = 'rgba(45,212,191,0.2)';
+        svg += `<line x1="0" y1="${y1}" x2="14" y2="${y1}" stroke="${color}" stroke-width="1.5"/>`;
+        svg += `<line x1="0" y1="${y2}" x2="14" y2="${y2}" stroke="${color}" stroke-width="1.5"/>`;
+        svg += `<line x1="14" y1="${y1}" x2="14" y2="${y2}" stroke="${color}" stroke-width="1.5"/>`;
+        svg += `<line x1="14" y1="${mid}" x2="28" y2="${mid}" stroke="${color}" stroke-width="1.5"/>`;
+      }
+      svg += '</svg>';
+      col.style.cssText = 'position:relative;width:28px;flex-shrink:0;';
+      col.innerHTML = svg;
+    });
+  });
+}
+
+</script>
+</body>
+</html>
