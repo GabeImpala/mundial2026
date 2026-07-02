@@ -230,24 +230,24 @@
   tr.live-row td.team::after{content:' ●'; color:var(--coral); font-size:9px; vertical-align:super;}
 
   /* ── BRACKET VISUAL ── */
-  .bvc-bracket{display:flex;align-items:flex-start;gap:0;min-width:980px;padding:8px 0;}
-  .bvc-round{display:flex;flex-direction:column;min-width:160px;}
-  .bvc-round-label{font-family:'Space Grotesk',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);text-align:center;padding:0 4px 8px;}
+  .bvc-bracket{display:flex;align-items:flex-start;gap:0;padding:8px 0;overflow-x:auto;}
+  .bvc-round{display:flex;flex-direction:column;min-width:165px;flex-shrink:0;}
+  .bvc-round-label{font-family:'Space Grotesk',sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.06em;color:var(--mint);text-align:center;padding:0 4px 10px;font-weight:700;}
   .bvc-round-matches{display:flex;flex-direction:column;}
   .bvc-match-wrap{display:flex;align-items:center;}
-  .bvc-card{background:var(--card-2);border:1px solid var(--line);border-radius:10px;overflow:hidden;min-width:155px;width:155px;}
-  .bvc-card.bvc-live{border-color:var(--coral);box-shadow:0 0 8px rgba(242,107,91,0.25);}
-  .bvc-date{font-size:10px;color:var(--muted);padding:5px 10px 3px;font-family:'Roboto Mono',monospace;border-bottom:1px solid var(--line);}
+  .bvc-card{background:var(--card-2);border:1px solid var(--line);border-radius:10px;overflow:hidden;width:155px;flex-shrink:0;}
+  .bvc-card.bvc-live{border-color:var(--coral);box-shadow:0 0 8px rgba(242,107,91,0.3);}
+  .bvc-date{font-size:10px;color:var(--muted);padding:5px 10px 3px;font-family:'Roboto Mono',monospace;border-bottom:1px solid var(--line);white-space:nowrap;}
   .bvc-team{display:flex;align-items:center;gap:6px;padding:7px 10px;font-size:12.5px;font-weight:500;}
   .bvc-team:not(:last-child){border-bottom:1px solid var(--line);}
   .bvc-team.bvc-winner{color:var(--text);font-weight:700;}
   .bvc-team:not(.bvc-winner):not(.bvc-tbd){color:var(--muted);}
   .bvc-team.bvc-tbd{color:var(--muted);font-style:italic;font-size:11.5px;}
   .bvc-flag{font-size:14px;flex-shrink:0;line-height:1;}
-  .bvc-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .bvc-score{font-family:'Roboto Mono',monospace;font-size:12px;font-weight:700;flex-shrink:0;}
+  .bvc-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px;}
+  .bvc-score{font-family:'Roboto Mono',monospace;font-size:12px;font-weight:700;flex-shrink:0;margin-left:auto;}
   .bvc-team.bvc-winner .bvc-score{color:var(--gold);}
-  .bvc-connector-col{width:32px;flex-shrink:0;position:relative;align-self:stretch;}
+  .bvc-connector-col{width:28px;flex-shrink:0;position:relative;align-self:stretch;}
   .panel.accent-gold{--accent:var(--gold);}
 
 
@@ -1782,29 +1782,30 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 function renderBracketVisual(){
   const el = document.getElementById('bracketViz');
   if(!el) return;
-  if(!state.live){ el.innerHTML = '<div class="empty-state">Conecta datos en vivo para ver el bracket.</div>'; return; }
+  if(!state.live){ el.innerHTML = '<div class="empty-state">Cargando datos en vivo...</div>'; return; }
 
   const cache = {};
   function resolve(id){
-    try{ return resolveMatch(id, cache); } catch(e){ return {homeLabel:'Por definir',awayLabel:'Por definir',apiMatch:null,winner:null}; }
+    try{ return resolveMatch(id, cache); }
+    catch(e){ return {homeLabel:'Por definir', awayLabel:'Por definir', apiMatch:null, winner:null}; }
   }
 
-  // Banderas emoji por nombre de equipo (español)
   const FLAGS = {
     'México':'🇲🇽','España':'🇪🇸','Argentina':'🇦🇷','Francia':'🇫🇷','Alemania':'🇩🇪',
-    'Brasil':'🇧🇷','Inglaterra':'🏴󠁧󠁢󠁥󠁮󠁧󠁿','Países Bajos':'🇳🇱','Portugal':'🇵🇹','Colombia':'🇨🇴',
+    'Brasil':'🇧🇷','Inglaterra':'🇬🇧','Países Bajos':'🇳🇱','Portugal':'🇵🇹','Colombia':'🇨🇴',
     'Uruguay':'🇺🇾','Estados Unidos':'🇺🇸','Canadá':'🇨🇦','Marruecos':'🇲🇦','Japón':'🇯🇵',
     'Suiza':'🇨🇭','Bélgica':'🇧🇪','Croacia':'🇭🇷','Ecuador':'🇪🇨','Senegal':'🇸🇳',
-    'Australia':'🇦🇺','Suecia':'🇸🇪','Escocia':'🏴󠁧󠁢󠁳󠁣󠁴󠁿','Noruega':'🇳🇴','Turquía':'🇹🇷',
+    'Australia':'🇦🇺','Suecia':'🇸🇪','Escocia':'🏴','Noruega':'🇳🇴','Turquía':'🇹🇷',
     'Paraguay':'🇵🇾','Costa de Marfil':'🇨🇮','Bosnia y Herzegovina':'🇧🇦','Catar':'🇶🇦',
     'Cabo Verde':'🇨🇻','Nueva Zelanda':'🇳🇿','Irán':'🇮🇷','Egipto':'🇪🇬','Argelia':'🇩🇿',
     'Jordania':'🇯🇴','Austria':'🇦🇹','Irak':'🇮🇶','Congo RD':'🇨🇩','Uzbekistán':'🇺🇿',
     'Panamá':'🇵🇦','Haití':'🇭🇹','Curazao':'🇨🇼','Corea del Sur':'🇰🇷','República Checa':'🇨🇿',
-    'Sudáfrica':'🇿🇦','Arabia Saudita':'🇸🇦','Ghana':'🇬🇭','Túnez':'🇹🇳',
+    'Sudáfrica':'🇿🇦','Arabia Saudita':'🇸🇦','Ghana':'🇬🇭','Túnez':'🇹🇳','Irlanda del Norte':'🏴',
   };
-  function flag(name){ return FLAGS[name] || '🏳️'; }
+  function flag(name){ return FLAGS[name] || '🏳'; }
 
-  // Formatea una tarjeta de partido
+  function isTbd(s){ return !s||s==='—'||s.startsWith('Ganador')||s.startsWith('Perdedor')||s==='Por definir'; }
+
   function matchCard(id){
     const r = resolve(id);
     const m = r.apiMatch;
@@ -1815,114 +1816,133 @@ function renderBracketVisual(){
     const hp = m?.score?.penalties?.home;
     const ap = m?.score?.penalties?.away;
     const dur = m?.score?.duration;
-    const durLabel = dur==='EXTRA_TIME'?' (ET)':dur==='PENALTY_SHOOTOUT'?' (P)':'';
+    const durLabel = dur==='EXTRA_TIME'?' ET':dur==='PENALTY_SHOOTOUT'?' P':dur==='PENALTIES'?' P':(hp!=null?' P':'');
 
-    const homeLabel = r.homeLabel||'Por definir';
-    const awayLabel = r.awayLabel||'Por definir';
-    const tbd = (s) => !s||s==='—'||s.startsWith('Ganador')||s.startsWith('Perdedor')||s==='Por definir';
-
+    const homeLabel = r.homeLabel || 'Por definir';
+    const awayLabel = r.awayLabel || 'Por definir';
     const winner = r.winner;
-    const homeWin = winner && (winner.id === r.homeTeam?.id);
-    const awayWin = winner && (winner.id === r.awayTeam?.id);
+    const homeWin = isFinished && winner && (winner.id === r.homeTeam?.id || (hg!=null && hg > ag));
+    const awayWin = isFinished && winner && (winner.id === r.awayTeam?.id || (ag!=null && ag > hg));
 
-    // Fecha del partido real
     let dateStr = '';
     if(m?.utcDate){
       const d = new Date(m.utcDate);
-      dateStr = d.toLocaleDateString('es-MX',{weekday:'short',month:'short',day:'numeric',timeZone:'America/Chicago'}) +
-                ' ' + d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',timeZone:'America/Chicago'});
+      dateStr = d.toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short',timeZone:'America/Chicago'}) +
+        ' ' + d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',timeZone:'America/Chicago'});
     } else if(FULL_BRACKET[id]?.date){
       dateStr = FULL_BRACKET[id].date;
     }
 
-    const scoreH = isFinished||isLive ? (hg??'-')+(hp!=null?` (${hp})`:'') : '';
-    const scoreA = isFinished||isLive ? (ag??'-')+(ap!=null?` (${ap})`:'') : '';
+    const scoreH = (isFinished||isLive) && hg!=null ? `${hg}${hp!=null?` (${hp})`:''}` : '';
+    const scoreA = (isFinished||isLive) && ag!=null ? `${ag}${ap!=null?` (${ap})`:''}` : '';
+    const dateDisplay = dateStr + (durLabel&&isFinished?` · ${durLabel}`:'');
 
     return `<div class="bvc-card${isLive?' bvc-live':''}">
-      ${dateStr?`<div class="bvc-date">${dateStr}${durLabel}</div>`:''}
-      <div class="bvc-team${homeWin?' bvc-winner':''}${tbd(homeLabel)?' bvc-tbd':''}">
-        <span class="bvc-flag">${tbd(homeLabel)?'':'flag(homeLabel)'}</span>
-        <span class="bvc-name">${homeLabel}</span>
-        <span class="bvc-score">${scoreH}</span>
+      ${dateDisplay?`<div class="bvc-date">${dateDisplay}</div>`:''}
+      <div class="bvc-team${homeWin?' bvc-winner':''}${isTbd(homeLabel)?' bvc-tbd':''}">
+        <span class="bvc-flag">${isTbd(homeLabel)?'':'${flag(homeLabel)}'}</span>
+        <span class="bvc-name" title="${homeLabel}">${homeLabel}</span>
+        ${scoreH?`<span class="bvc-score">${scoreH}</span>`:''}
       </div>
-      <div class="bvc-team${awayWin?' bvc-winner':''}${tbd(awayLabel)?' bvc-tbd':''}">
-        <span class="bvc-flag">${tbd(awayLabel)?'':'flag(awayLabel)'}</span>
-        <span class="bvc-name">${awayLabel}</span>
-        <span class="bvc-score">${scoreA}</span>
+      <div class="bvc-team${awayWin?' bvc-winner':''}${isTbd(awayLabel)?' bvc-tbd':''}">
+        <span class="bvc-flag">${isTbd(awayLabel)?'':'${flag(awayLabel)}'}</span>
+        <span class="bvc-name" title="${awayLabel}">${awayLabel}</span>
+        ${scoreA?`<span class="bvc-score">${scoreA}</span>`:''}
       </div>
-    </div>`.replace(/flag\(homeLabel\)/g, flag(homeLabel)).replace(/flag\(awayLabel\)/g, flag(awayLabel));
+    </div>`
+    .replace(/\$\{flag\(homeLabel\)\}/g, flag(homeLabel))
+    .replace(/\$\{flag\(awayLabel\)\}/g, flag(awayLabel));
   }
 
-  // El bracket tiene 2 mitades simétricas. Dentro de cada mitad, los partidos
-  // se emparejan de 2 en 2 para formar los de la siguiente ronda.
-  // Estructura: R32 (16 partidos) → R16 (8) → QF (4) → SF (2) → F (1)
-  const R32  = [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88];
-  const R16  = [89,90,91,92,93,94,95,96];
-  const QF   = [97,98,99,100];
-  const SF   = [101,102];
-  const FIN  = [103];
+  // Altura de una tarjeta + margen (aprox)
+  const CARD_H = 80;
 
-  // Renderiza una columna de ronda con espaciado que crece exponencialmente
-  function renderRound(ids, label, gapPx){
+  // Genera una ronda con espaciado calculado para que el centro de cada
+  // par de tarjetas quede alineado con la tarjeta de la ronda siguiente.
+  function renderRound(ids, label, spaceBetween){
+    const items = ids.map(id => {
+      return `<div class="bvc-match-wrap" style="margin-bottom:${spaceBetween}px;">${matchCard(id)}</div>`;
+    }).join('');
     return `<div class="bvc-round">
       <div class="bvc-round-label">${label}</div>
-      <div class="bvc-round-matches" style="gap:${gapPx}px;">
-        ${ids.map(id=>`<div class="bvc-match-wrap">${matchCard(id)}</div>`).join('')}
-      </div>
+      <div class="bvc-round-matches">${items}</div>
     </div>`;
   }
 
-  const html = `<div class="bvc-bracket">
-    ${renderRound(R32,'16avos',6)}
-    <div class="bvc-connector-col" data-pairs="8"></div>
-    ${renderRound(R16,'Octavos',80)}
-    <div class="bvc-connector-col" data-pairs="4"></div>
-    ${renderRound(QF,'Cuartos',216)}
-    <div class="bvc-connector-col" data-pairs="2"></div>
-    ${renderRound(SF,'Semis',490)}
-    <div class="bvc-connector-col" data-pairs="1"></div>
-    ${renderRound(FIN,'Final',0)}
+  // Los espacios entre tarjetas se duplican en cada ronda para que el
+  // centro del par quede alineado con la tarjeta de la siguiente ronda.
+  // Base: 6px entre tarjetas en R32. Cada ronda siguiente: (prevGap*2 + CARD_H).
+  const g0 = 6;   // R32
+  const g1 = g0*2 + CARD_H;   // R16: ~166px
+  const g2 = g1*2 + CARD_H;   // QF: ~412px
+  const g3 = g2*2 + CARD_H;   // SF: ~904px
+
+  const R32 = [73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88];
+  const R16 = [89,90,91,92,93,94,95,96];
+  const QF  = [97,98,99,100];
+  const SF  = [101,102];
+  const FIN = [103];
+
+  // Offset top para centrar cada ronda respecto a R32
+  // Cada ronda necesita un padding-top = (cardH + prevGap) / 2
+  const pt1 = (CARD_H + g0) / 2;
+  const pt2 = pt1 + (CARD_H + g1) / 2;
+  const pt3 = pt2 + (CARD_H + g2) / 2;
+  const pt4 = pt3 + (CARD_H + g3) / 2;
+
+  function connCol(){ return '<div class="bvc-connector-col"></div>'; }
+
+  el.innerHTML = `<div class="bvc-bracket">
+    ${renderRound(R32,'16avos',g0)}
+    ${connCol()}
+    <div class="bvc-round" style="padding-top:${pt1}px;">
+      <div class="bvc-round-label">Octavos</div>
+      <div class="bvc-round-matches">${R16.map(id=>`<div class="bvc-match-wrap" style="margin-bottom:${g1}px;">${matchCard(id)}</div>`).join('')}</div>
+    </div>
+    ${connCol()}
+    <div class="bvc-round" style="padding-top:${pt2}px;">
+      <div class="bvc-round-label">Cuartos</div>
+      <div class="bvc-round-matches">${QF.map(id=>`<div class="bvc-match-wrap" style="margin-bottom:${g2}px;">${matchCard(id)}</div>`).join('')}</div>
+    </div>
+    ${connCol()}
+    <div class="bvc-round" style="padding-top:${pt3}px;">
+      <div class="bvc-round-label">Semis</div>
+      <div class="bvc-round-matches">${SF.map(id=>`<div class="bvc-match-wrap" style="margin-bottom:${g3}px;">${matchCard(id)}</div>`).join('')}</div>
+    </div>
+    ${connCol()}
+    <div class="bvc-round" style="padding-top:${pt4}px;">
+      <div class="bvc-round-label">Final</div>
+      <div class="bvc-round-matches">${FIN.map(id=>`<div class="bvc-match-wrap">${matchCard(id)}</div>`).join('')}</div>
+    </div>
   </div>`;
 
-  el.innerHTML = html;
-
-  // Dibuja los conectores SVG entre rondas
+  // Conectores SVG
   requestAnimationFrame(() => {
-    el.querySelectorAll('.bvc-connector-col').forEach(col => {
-      const pairs = parseInt(col.dataset.pairs);
-      const prevRound = col.previousElementSibling;
-      const nextRound = col.nextElementSibling;
+    const bracketEl = el.querySelector('.bvc-bracket');
+    if(!bracketEl) return;
+    const rounds = [...bracketEl.querySelectorAll('.bvc-round')];
+    const connCols = [...bracketEl.querySelectorAll('.bvc-connector-col')];
+    const elRect = el.getBoundingClientRect();
+
+    connCols.forEach((col, ci) => {
+      const prevRound = rounds[ci];
+      const nextRound = rounds[ci+1];
       if(!prevRound||!nextRound) return;
       const prevCards = [...prevRound.querySelectorAll('.bvc-match-wrap')];
       const nextCards = [...nextRound.querySelectorAll('.bvc-match-wrap')];
       const colRect = col.getBoundingClientRect();
-      const elRect = el.getBoundingClientRect();
-      const svgH = elRect.height;
-      let svg = `<svg width="32" height="${svgH}" style="position:absolute;top:0;left:0;overflow:visible;" xmlns="http://www.w3.org/2000/svg">`;
+      const svgH = Math.max(elRect.height, 400);
+
+      let svg = `<svg width="28" height="${svgH}" style="position:absolute;top:0;left:0;" xmlns="http://www.w3.org/2000/svg">`;
       for(let i=0;i<nextCards.length;i++){
         const c1 = prevCards[i*2];
         const c2 = prevCards[i*2+1];
-        const next = nextCards[i];
-        if(!c1||!c2||!next) continue;
+        const cn = nextCards[i];
+        if(!c1||!c2||!cn) continue;
         const r1 = c1.getBoundingClientRect();
         const r2 = c2.getBoundingClientRect();
-        const rn = next.getBoundingClientRect();
-        const y1 = r1.top + r1.height/2 - elRect.top;
-        const y2 = r2.top + r2.height/2 - elRect.top;
-        const yn = rn.top + rn.height/2 - elRect.top;
-        const x0 = 0, xm = 16, x1 = 32;
-        const ym = (y1+y2)/2;
-        svg += `<path d="M${x0},${y1} H${xm} V${ym}" fill="none" stroke="rgba(200,230,255,0.18)" stroke-width="1.5"/>`;
-        svg += `<path d="M${x0},${y2} H${xm} V${ym}" fill="none" stroke="rgba(200,230,255,0.18)" stroke-width="1.5"/>`;
-        svg += `<path d="M${xm},${ym} H${x1}" fill="none" stroke="rgba(200,230,255,0.18)" stroke-width="1.5"/>`;
-      }
-      svg += '</svg>';
-      col.style.position='relative';
-      col.innerHTML = svg;
-    });
-  });
-}
-
-</script>
-</body>
-</html>
+        const rn = cn.getBoundingClientRect();
+        const y1 = r1.top + r1.height/2 - elRect.top + el.scrollTop;
+        const y2 = r2.top + r2.height/2 - elRect.top + el.scrollTop;
+        const yn = rn.top + rn.height/2 - elRect.top + el.scrollTop;
+        const mid 
